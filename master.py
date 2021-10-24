@@ -13,16 +13,14 @@
     | |--BlastP_XML
     | |--*.fasta
     | |--IQTree_Phylo/
-    | | |--Post_MAFFT_Cleaned.fasta
     | | |--Phylo.*
     | |--IQTree_ASR/
-    | | |--Final_Sequences.fasta
     | | |--ASR.*
     | |--IQTree_Binary/
     | | |--Binary_Alignment.fasta
     | | |--Binary.*
-    | |--Primers/
-    | | |--Node*
+    | |--Ancestral_DNA_X%_Cutoff/
+    | | |--Node*.txt
     '''
 
 from Bio.Blast import NCBIWWW
