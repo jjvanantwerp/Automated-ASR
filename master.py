@@ -569,63 +569,6 @@ def Post_MAFFT_processing(dirname,finname,deletion_percentage=0.01,misalignment_
         Clean_all_gaps(fasta_dict)#Clean
         User_Sequence=fasta_dict.get("User_Sequence")#Update
     dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_Cleaned.fasta')
-    '''
-        Boolean_Gap_Positions=[]
-        User_Sequence=fasta_dict.get("User_Sequence")
-        #Tally positions with and without gaps in the provided sequence in the alignment
-        for pos in User_Sequence:
-            if pos =='-':
-                Boolean_Gap_Positions.append(False)
-            else:
-                Boolean_Gap_Positions.append(True)
-        #Check all the other sequences to see how often they diagree
-        for Name,Seq in fasta_dict.items():#For all sequences
-            score=0 #starting with a clean slate
-            for i,residue in enumerate(Seq):
-                if Boolean_Gap_Positions[i]: #If the User sequence has an ammino acid and this sequcne does not (deletion)
-                    if (residue == '-'):
-                        score+=1 #Mark it down
-                elif(residue != '-'): #Or if the User sequence has a gap and this sequnce does not (insertion)
-                    score+=1 #Mark it down
-            if (score>(misalignment_cutoff*len(Seq))):#If more than the specified % of positions disagree,
-                Misaligned_Sequences.append(Name) #Add it to the blacklist
-        #Remove the misaligned sequences
-        for Name in Misaligned_Sequences:
-            fasta_dict.pop(Name)
-        #Remove all gaps in the alignment, and re-align.
-        for key,sequence in fasta_dict.items(): #Remove all the gaps
-            fasta_dict.update({key:''.join([ char for char in sequence if char != '-' ])})
-        #store as a file for MAFFT alignment, run the alignment, and remove the temporary file.
-        dict2fasta(fasta_dict,'temporary1.fasta')
-        try:
-            #os.system(str) Executes command of str in the directory from which the python script is executed.
-            os.system(f'mafft temporary1.fasta > temporary2.fasta') 
-        except:
-            raise RuntimeError("There was an error aligning the cleaned sequences.")
-            print("There was an error ligning the cleaned sequences.")
-        os.remove('temporary1.fasta')
-        '''
-    '''
-        Misaligned_Sequences=[]
-        #Clean up the sequences that remain
-        gap_tally = [0]*(len(Boolean_Gap_Positions))
-        number_of_sequences=len(fasta_dict)
-        positions_to_pop=[]
-        for key in fasta_dict.keys(): #For each position in the alignment 
-            i=0
-            for residue in fasta_dict[key]:
-                if (residue == '-'): #Tally the numer of sequences that have a gap
-                    gap_tally[i]+=1
-                i+=1
-        i=0
-        for position in gap_tally: #For each position in the alignment
-            if ((position/number_of_sequences)==1): #If all sequences have a gap,
-                positions_to_pop.append(i) #remember to remove that position from the whole alignment.
-            i+=1
-        for key in fasta_dict.keys(): #For each sequence in the alignment
-            #Reassemble the sequence using only positions from the alignment that were not majority-gaps
-            fasta_dict.update({key:''.join([ fasta_dict.get(key)[i] for i in range(len(fasta_dict.get(key))) if i not in positions_to_pop ])})
-        '''    
     return('Post_MAFFT_Cleaned.fasta')
 
 def IQTree_Phylo(dirname,finname): #finname is the alignment
