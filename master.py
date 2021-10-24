@@ -28,6 +28,112 @@
 from Bio.Blast import NCBIWWW
 import xml.etree.ElementTree as ET
 import os
+from string import ascii_letters
+
+# This dictionary provides the amino acid encoded for by every codon
+Codon_to_AA = {
+    'ata':'I', 'atc':'I', 'att':'I', 'atg':'M',
+    'aca':'T', 'acc':'T', 'acg':'T', 'act':'T',
+    'aac':'N', 'aat':'N', 'aaa':'K', 'aag':'K',
+    'agc':'S', 'agt':'S', 'aga':'R', 'agg':'R',
+    'cta':'L', 'ctc':'L', 'ctg':'L', 'ctt':'L',
+    'cca':'P', 'ccc':'P', 'ccg':'P', 'cct':'P',
+    'cac':'H', 'cat':'H', 'caa':'Q', 'cag':'Q',
+    'cga':'R', 'cgc':'R', 'cgg':'R', 'cgt':'R',
+    'gta':'V', 'gtc':'V', 'gtg':'V', 'gtt':'V',
+    'gca':'A', 'gcc':'A', 'gcg':'A', 'gct':'A',
+    'gac':'D', 'gat':'D', 'gaa':'E', 'gag':'E',
+    'gga':'G', 'ggc':'G', 'ggg':'G', 'ggt':'G',
+    'tca':'S', 'tcc':'S', 'tcg':'S', 'tct':'S',
+    'ttc':'F', 'ttt':'F', 'tta':'L', 'ttg':'L',
+    'tac':'Y', 'tat':'Y', 'tgc':'C', 'tgt':'C',
+    'taa':' stop ', 'tag':' stop ', 'tga':' stop ', 'tgg':'W'
+    }
+# This dictionary provides the best codon for every amino acid in E Coli
+AA_to_Codon_Ecoli = {
+    'A':'gcc','R':'cgt','N':'aac','D':'gat','B':'aac',
+    'C':'tgc','E':'gaa','Q':'cag','Z':'cag','G':'ggc',
+    'H':'cat','I':'att','L':'ctg','K':'aaa','M':'atg',
+    'F':'ttt','P':'ccg','S':'agc','T':'acc','W':'tgg',
+    'Y':'tat','V':'gtg',' stop ':'taa'
+    }
+# This dictionary provides the best codon for every amino acid in humans
+AA_to_Codon_Human = {
+    'A':'gcc','R':'cgg','N':'aac','D':'gac','B':'aac',
+    'C':'tgc','E':'gag','Q':'cag','Z':'cag','G':'ggc',
+    'H':'cac','I':'atc','L':'ctg','K':'aag','M':'atg',
+    'F':'ttc','P':'ccc','S':'agc','T':'acc','W':'tgg',
+    'Y':'tac','V':'gtc',' stop ':'tga'
+    }
+# This dictionary provides the mixed-base code for every combination of 2-4 nucleic acids
+Mixed_Bases_lookup = {
+    'a':'a','c':'c','g':'g','t':'t',
+
+    'ag':'r', 'ga':'r',
+    'ct':'y', 'tc':'y',
+    'ac':'m', 'ca':'m',
+    'gt':'k', 'tg':'k',
+    'gc':'s', 'cg':'s',
+    'at':'w', 'ta':'w',
+
+    'act':'h', 'atc':'h', 'cat':'h', 'cta':'h', 'tac':'h', 'tca':'h',
+    'gct':'b', 'gtc':'b', 'ctg':'b', 'cgt':'b', 'tgc':'b', 'tcg':'b',
+    'acg':'v', 'agc':'v', 'cag':'v', 'cga':'v', 'gca':'v', 'gac':'v',
+    'agt':'d', 'atg':'d', 'gat':'d', 'gta':'d', 'tga':'d', 'tag':'d',
+
+    'acgt':'n','actg':'n','agct':'n','agtc':'n','atcg':'n','atgc':'n',
+    'cagt':'n','catg':'n','gact':'n','gatc':'n','tacg':'n','tagc':'n',
+    'cgat':'n','ctag':'n','gcat':'n','gtac':'n','tcag':'n','tgac':'n',
+    'cgta':'n','ctga':'n','gcta':'n','gtca':'n','tcga':'n','tgca':'n'
+    }
+# This dictionary provides the best degenerate codon for every combination of two amino acids for Humans
+AA_Pair_lookup_Human = { 
+    'AC':'ksc', 'AD':'gmc', 'AE':'gma', 'AF':'kyc', 'AG':'gsc', 'AH':'smc', 'AI':'ryc', 'AK':'rma', 'AL':'syc', 'AM':'ryg', 'AN':'rmc', 'AP':'scc', 'AQ':'sma', 'AR':'rsa', 'AS':'kcc', 'AT':'rcc', 'AV':'gyc', 'AW':'ksg', 'AY':'kmc', 
+    'CA':'ksc', 'CD':'krc', 'CE':'krs', 'CF':'tkc', 'CG':'kgc', 'CH':'yrc', 'CI':'wkc', 'CK':'wrs', 'CL':'ykc', 'CM':'wks', 'CN':'wrc', 'CP':'ysc', 'CQ':'yrs', 'CR':'ygc', 'CS':'tsc', 'CT':'wsc', 'CV':'kkc', 'CW':'tgs', 'CY':'trc', 
+    'DA':'gmc', 'DC':'krc', 'DE':'gas', 'DF':'kwc', 'DG':'grc', 'DH':'sac', 'DI':'rwc', 'DK':'ras', 'DL':'swc', 'DM':'rws', 'DN':'rac', 'DP':'smc', 'DQ':'sas', 'DR':'src', 'DS':'rrc', 'DT':'rmc', 'DV':'gwc', 'DW':'krs', 'DY':'kac', 
+    'EA':'gma', 'EC':'krs', 'ED':'gas', 'EF':'kws', 'EG':'grg', 'EH':'sas', 'EI':'rwa', 'EK':'rag', 'EL':'swg', 'EM':'rwg', 'EN':'ras', 'EP':'smg', 'EQ':'sag', 'ER':'rrg', 'ES':'kmg', 'ET':'rmg', 'EV':'gwg', 'EW':'rrg', 'EY':'kas', 
+    'FA':'kyc', 'FC':'tkc', 'FD':'kwc', 'FE':'kws', 'FG':'kkc', 'FH':'ywc', 'FI':'wtc', 'FK':'wwm', 'FL':'ytc', 'FM':'wts', 'FN':'wwc', 'FP':'yyc', 'FQ':'yws', 'FR':'ykc', 'FS':'tyc', 'FT':'wyc', 'FV':'ktc', 'FW':'tks', 'FY':'twc', 
+    'GA':'gsc', 'GC':'kgc', 'GD':'grc', 'GE':'grg', 'GF':'kkc', 'GH':'src', 'GI':'rkc', 'GK':'rra', 'GL':'skc', 'GM':'rrg', 'GN':'rrc', 'GP':'ssc', 'GQ':'grg', 'GR':'sgg', 'GS':'rgc', 'GT':'rsc', 'GV':'gkc', 'GW':'kgg', 'GY':'krc', 
+    'HA':'smc', 'HC':'yrc', 'HD':'sac', 'HE':'sas', 'HF':'ywc', 'HG':'src', 'HI':'mwc', 'HK':'mas', 'HL':'cwc', 'HM':'mws', 'HN':'mac', 'HP':'cmc', 'HQ':'cas', 'HR':'crc', 'HS':'mrc', 'HT':'mmc', 'HV':'swc', 'HW':'yrs', 'HY':'yac', 
+    'IA':'ryc', 'IC':'wkc', 'ID':'rwc', 'IE':'rwa', 'IF':'wtc', 'IG':'rkc', 'IH':'mwc', 'IK':'awa', 'IL':'mtc', 'IM':'ats', 'IN':'awc', 'IP':'myc', 'IQ':'mya', 'IR':'aka', 'IS':'akc', 'IT':'ayc', 'IV':'rtc', 'IW':'wks', 'IY':'wwc', 
+    'KA':'rma', 'KC':'wrs', 'KD':'ras', 'KE':'rag', 'KF':'wwm', 'KG':'rra', 'KH':'mas', 'KI':'awa', 'KL':'mwa', 'KM':'awg', 'KN':'aas', 'KP':'mma', 'KQ':'maa', 'KR':'arg', 'KS':'ars', 'KT':'ama', 'KV':'rwa', 'KW':'wrg', 'KY':'was', 
+    'LA':'syc', 'LC':'ykc', 'LD':'swc', 'LE':'swg', 'LF':'ytc', 'LG':'skc', 'LH':'csc', 'LI':'mtc', 'LK':'mwa', 'LM':'mtg', 'LN':'mwc', 'LP':'cyc', 'LQ':'cyg', 'LR':'ckg', 'LS':'tyr', 'LT':'myc', 'LV':'stg', 'LW':'tkg', 'LY':'ywc', 
+    'MA':'ryg', 'MC':'wks', 'MD':'rws', 'ME':'rwg', 'MF':'wts', 'MG':'rrg', 'MH':'mws', 'MI':'ats', 'MK':'awg', 'ML':'mtg', 'MN':'aws', 'MP':'myg', 'MQ':'mwg', 'MR':'akg', 'MS':'aks', 'MT':'ayg', 'MV':'rtg', 'MW':'wkg', 'MY':'wws', 
+    'NA':'rmc', 'NC':'wrc', 'ND':'rac', 'NE':'ras', 'NF':'wwc', 'NG':'rrc', 'NH':'mac', 'NI':'awc', 'NK':'aas', 'NL':'mwc', 'NM':'aws', 'NP':'mmc', 'NQ':'mas', 'NR':'ars', 'NS':'arc', 'NT':'amc', 'NV':'rwc', 'NW':'wrs', 'NY':'wac', 
+    'PA':'scc', 'PC':'ysc', 'PD':'smc', 'PE':'smg', 'PF':'yyc', 'PG':'ssc', 'PH':'cmc', 'PI':'myc', 'PK':'mma', 'PL':'cyc', 'PM':'myg', 'PN':'mmc', 'PQ':'cmr', 'PR':'csc', 'PS':'ycc', 'PT':'mcc', 'PV':'syc', 'PW':'ysg', 'PY':'ymc', 
+    'QA':'sma', 'QC':'yrs', 'QD':'sas', 'QE':'sag', 'QF':'yws', 'QG':'grg', 'QH':'cas', 'QI':'mya', 'QK':'maa', 'QL':'cyg', 'QM':'mwg', 'QN':'mas', 'QP':'cmr', 'QR':'crg', 'QS':'yma', 'QT':'mma', 'QV':'swg', 'QW':'yrg', 'QY':'yas', 
+    'RA':'rsa', 'RC':'ygc', 'RD':'src', 'RE':'rrg', 'RF':'ykc', 'RG':'sgg', 'RH':'crc', 'RI':'aka', 'RK':'arg', 'RL':'ckg', 'RM':'akg', 'RN':'ars', 'RP':'csc', 'RQ':'crg', 'RS':'ags', 'RT':'asc', 'RV':'rkc', 'RW':'ygg', 'RY':'yrc', 
+    'SA':'kcc', 'SC':'tsc', 'SD':'rrc', 'SE':'kmg', 'SF':'tyc', 'SG':'rgc', 'SH':'mrc', 'SI':'akc', 'SK':'ars', 'SL':'tyr', 'SM':'aks', 'SN':'arc', 'SP':'ycc', 'SQ':'yma', 'SR':'ags', 'ST':'asc', 'SV':'kyc', 'SW':'tsg', 'SY':'tmc', 
+    'TA':'rcc', 'TC':'wsc', 'TD':'rmc', 'TE':'rmg', 'TF':'wyc', 'TG':'rsc', 'TH':'mmc', 'TI':'ayc', 'TK':'ama', 'TL':'myc', 'TM':'ayg', 'TN':'amc', 'TP':'mcc', 'TQ':'mma', 'TR':'asc', 'TS':'asc', 'TV':'ryc', 'TW':'wsg', 'TY':'wmc', 
+    'VA':'gyc', 'VC':'kkc', 'VD':'gwc', 'VE':'gwg', 'VF':'ktc', 'VG':'gkc', 'VH':'swc', 'VI':'rtc', 'VK':'rwa', 'VL':'stg', 'VM':'rtg', 'VN':'rwc', 'VP':'syc', 'VQ':'swg', 'VR':'rkc', 'VS':'kyc', 'VT':'ryc', 'VW':'kkg', 'VY':'kwc', 
+    'WA':'ksg', 'WC':'tgs', 'WD':'krs', 'WE':'rrg', 'WF':'tks', 'WG':'kgg', 'WH':'yrs', 'WI':'wks', 'WK':'wrg', 'WL':'tkg', 'WM':'wkg', 'WN':'wrs', 'WP':'ysg', 'WQ':'yrg', 'WR':'ygg', 'WS':'tsg', 'WT':'wsg', 'WV':'kkg', 'WY':'trs', 
+    'YA':'kmc', 'YC':'trc', 'YD':'kac', 'YE':'kas', 'YF':'twc', 'YG':'krc', 'YH':'yac', 'YI':'wwc', 'YK':'was', 'YL':'ywc', 'YM':'wws', 'YN':'wac', 'YP':'ymc', 'YQ':'yas', 'YR':'yrc', 'YS':'tmc', 'YT':'wmc', 'YV':'kwc', 'YW':'trs',
+}
+# This dictionary provides the best degenerate codon for every combination of two amino acids for EColi
+AA_Pair_lookup_EColi = { 
+    'AC':'ksc', 'AD':'gmc', 'AE':'gma', 'AF':'kyc', 'AG':'gsc', 'AH':'smc', 'AI':'ryc', 'AK':'rma', 'AL':'syc', 'AM':'ryg', 'AN':'rmc', 'AP':'scc', 'AQ':'sma', 'AR':'rsa', 'AS':'kcc', 'AT':'rcc', 'AV':'gyc', 'AW':'ksg', 'AY':'kmc', 
+    'CA':'ksc', 'CD':'krc', 'CE':'krs', 'CF':'tkc', 'CG':'kgc', 'CH':'yrc', 'CI':'wkc', 'CK':'wrs', 'CL':'ykc', 'CM':'wks', 'CN':'wrc', 'CP':'ysc', 'CQ':'yrs', 'CR':'ygc', 'CS':'tsc', 'CT':'wsc', 'CV':'kkc', 'CW':'tgs', 'CY':'trc', 
+    'DA':'gmc', 'DC':'krc', 'DE':'gas', 'DF':'kwc', 'DG':'grc', 'DH':'sac', 'DI':'rwc', 'DK':'ras', 'DL':'swc', 'DM':'rws', 'DN':'rac', 'DP':'smc', 'DQ':'sas', 'DR':'src', 'DS':'rrc', 'DT':'rmc', 'DV':'gwc', 'DW':'krs', 'DY':'kac', 
+    'EA':'gma', 'EC':'krs', 'ED':'gas', 'EF':'kws', 'EG':'grg', 'EH':'sas', 'EI':'rwa', 'EK':'rag', 'EL':'swg', 'EM':'rwg', 'EN':'ras', 'EP':'smg', 'EQ':'sag', 'ER':'rrg', 'ES':'kmg', 'ET':'rmg', 'EV':'gwg', 'EW':'rrg', 'EY':'kas', 
+    'FA':'kyc', 'FC':'tkc', 'FD':'kwc', 'FE':'kws', 'FG':'kkc', 'FH':'ywc', 'FI':'wtc', 'FK':'wwm', 'FL':'ytc', 'FM':'wts', 'FN':'wwc', 'FP':'yyc', 'FQ':'yws', 'FR':'ykc', 'FS':'tyc', 'FT':'wyc', 'FV':'ktc', 'FW':'tks', 'FY':'twc', 
+    'GA':'gsc', 'GC':'kgc', 'GD':'grc', 'GE':'grg', 'GF':'kkc', 'GH':'src', 'GI':'rkc', 'GK':'rra', 'GL':'skc', 'GM':'rrg', 'GN':'rrc', 'GP':'ssc', 'GQ':'grg', 'GR':'sgg', 'GS':'rgc', 'GT':'rsc', 'GV':'gkc', 'GW':'kgg', 'GY':'krc', 
+    'HA':'smc', 'HC':'yrc', 'HD':'sac', 'HE':'sas', 'HF':'ywc', 'HG':'src', 'HI':'mwc', 'HK':'mas', 'HL':'cwc', 'HM':'mws', 'HN':'mac', 'HP':'cmc', 'HQ':'cas', 'HR':'crc', 'HS':'mrc', 'HT':'mmc', 'HV':'swc', 'HW':'yrs', 'HY':'yac', 
+    'IA':'ryc', 'IC':'wkc', 'ID':'rwc', 'IE':'rwa', 'IF':'wtc', 'IG':'rkc', 'IH':'mwc', 'IK':'awa', 'IL':'mtc', 'IM':'ats', 'IN':'awc', 'IP':'myc', 'IQ':'mya', 'IR':'aka', 'IS':'akc', 'IT':'ayc', 'IV':'rtc', 'IW':'wks', 'IY':'wwc', 
+    'KA':'rma', 'KC':'wrs', 'KD':'ras', 'KE':'rag', 'KF':'wwm', 'KG':'rra', 'KH':'mas', 'KI':'awa', 'KL':'mwa', 'KM':'awg', 'KN':'aas', 'KP':'mma', 'KQ':'maa', 'KR':'arg', 'KS':'ars', 'KT':'ama', 'KV':'rwa', 'KW':'wrg', 'KY':'was', 
+    'LA':'syc', 'LC':'ykc', 'LD':'swc', 'LE':'swg', 'LF':'ytc', 'LG':'skc', 'LH':'csc', 'LI':'mtc', 'LK':'mwa', 'LM':'mtg', 'LN':'mwc', 'LP':'cyc', 'LQ':'cyg', 'LR':'ckg', 'LS':'tyr', 'LT':'myc', 'LV':'stg', 'LW':'tkg', 'LY':'ywc', 
+    'MA':'ryg', 'MC':'wks', 'MD':'rws', 'ME':'rwg', 'MF':'wts', 'MG':'rrg', 'MH':'mws', 'MI':'ats', 'MK':'awg', 'ML':'mtg', 'MN':'aws', 'MP':'myg', 'MQ':'mwg', 'MR':'akg', 'MS':'aks', 'MT':'ayg', 'MV':'rtg', 'MW':'wkg', 'MY':'wws', 
+    'NA':'rmc', 'NC':'wrc', 'ND':'rac', 'NE':'ras', 'NF':'wwc', 'NG':'rrc', 'NH':'mac', 'NI':'awc', 'NK':'aas', 'NL':'mwc', 'NM':'aws', 'NP':'mmc', 'NQ':'mas', 'NR':'ars', 'NS':'arc', 'NT':'amc', 'NV':'rwc', 'NW':'wrs', 'NY':'wac', 
+    'PA':'scc', 'PC':'ysc', 'PD':'smc', 'PE':'smg', 'PF':'yyc', 'PG':'ssc', 'PH':'cmc', 'PI':'myc', 'PK':'mma', 'PL':'cyc', 'PM':'myg', 'PN':'mmc', 'PQ':'cmr', 'PR':'csc', 'PS':'yct', 'PT':'mcc', 'PV':'syc', 'PW':'ysg', 'PY':'ymc', 
+    'QA':'sma', 'QC':'yrs', 'QD':'sas', 'QE':'sag', 'QF':'yws', 'QG':'grg', 'QH':'cas', 'QI':'mya', 'QK':'maa', 'QL':'cyg', 'QM':'mwg', 'QN':'mas', 'QP':'cmr', 'QR':'crg', 'QS':'yma', 'QT':'mma', 'QV':'swg', 'QW':'yrg', 'QY':'yas', 
+    'RA':'rsa', 'RC':'ygc', 'RD':'src', 'RE':'rrg', 'RF':'ykc', 'RG':'sgg', 'RH':'crc', 'RI':'aka', 'RK':'arg', 'RL':'ckg', 'RM':'akg', 'RN':'ars', 'RP':'csc', 'RQ':'crg', 'RS':'ags', 'RT':'asc', 'RV':'rkc', 'RW':'ygg', 'RY':'yrc', 
+    'SA':'kcc', 'SC':'tsc', 'SD':'rrc', 'SE':'kmg', 'SF':'tyc', 'SG':'rgc', 'SH':'mrc', 'SI':'akc', 'SK':'ars', 'SL':'tyr', 'SM':'aks', 'SN':'arc', 'SP':'yct', 'SQ':'yma', 'SR':'ags', 'ST':'asc', 'SV':'kyc', 'SW':'tsg', 'SY':'tmc', 
+    'TA':'rcc', 'TC':'wsc', 'TD':'rmc', 'TE':'rmg', 'TF':'wyc', 'TG':'rsc', 'TH':'mmc', 'TI':'ayc', 'TK':'ama', 'TL':'myc', 'TM':'ayg', 'TN':'amc', 'TP':'mcc', 'TQ':'mma', 'TR':'asc', 'TS':'asc', 'TV':'ryc', 'TW':'wsg', 'TY':'wmc', 
+    'VA':'gyc', 'VC':'kkc', 'VD':'gwc', 'VE':'gwg', 'VF':'ktc', 'VG':'gkc', 'VH':'swc', 'VI':'rtc', 'VK':'rwa', 'VL':'stg', 'VM':'rtg', 'VN':'rwc', 'VP':'syc', 'VQ':'swg', 'VR':'rkc', 'VS':'kyc', 'VT':'ryc', 'VW':'kkg', 'VY':'kwc', 
+    'WA':'ksg', 'WC':'tgs', 'WD':'krs', 'WE':'rrg', 'WF':'tks', 'WG':'kgg', 'WH':'yrs', 'WI':'wks', 'WK':'wrg', 'WL':'tkg', 'WM':'wkg', 'WN':'wrs', 'WP':'ysg', 'WQ':'yrg', 'WR':'ygg', 'WS':'tsg', 'WT':'wsg', 'WV':'kkg', 'WY':'trs', 
+    'YA':'kmc', 'YC':'trc', 'YD':'kac', 'YE':'kas', 'YF':'twc', 'YG':'krc', 'YH':'yac', 'YI':'wwc', 'YK':'was', 'YL':'ywc', 'YM':'wws', 'YN':'wac', 'YP':'ymc', 'YQ':'yas', 'YR':'yrc', 'YS':'tmc', 'YT':'wmc', 'YV':'kwc', 'YW':'trs',
+}
+#An amino-acid key for IQ-Tree *.state files.
+AA_key = ['A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V']
 
 def fasta2dict(fasta_path,return_dict={},min_len=0): ### Reads in fasta file and renames certain sequences based on forbidden characters in IQ Tree as needed
     # Read in the file and prepare some variables
@@ -62,6 +168,24 @@ def dict2fasta(fasta_d,fname): ### Saves dictionary to fasta where the dictionar
     with open(fname,'w+') as out_fasta:
         for key,seq in fasta_d.items():
             out_fasta.write(f'>{key}\n{seq}\n')
+
+def Is_Valid_AA(AA):
+    not_AAs = ['B','O','J','U','Z']
+    if isinstance(AA,str):  # This block lets us evaluate strings of amino acids
+        return(((AA in ascii_letters) or( AA == '-')) and (AA not in not_AAs))
+    if isinstance(AA,list) and isinstance (AA[0],str): # This block lets us evaluate lists of amino acids
+        return all(((i in ascii_letters) or( i == '-')) and (i not in not_AAs) for i in AA)
+    if isinstance(AA,list) and isinstance (AA[0],list):  # This block lets us evaluate lists of lists of amino acids
+        return all( all(((i in ascii_letters) or( i == '-')) and (i not in not_AAs) for i in lst) for lst in AA)
+    else:
+        raise ValueError ("A bad type was evaluated as an amino acid list....")
+
+def Is_Valid_Codon(codon):
+    dna_leters = ['a','c','t','g','r','y','m','k','s','w','h','b','v','d','n']
+    if isinstance(codon,str):
+        return (((len(codon)%3)==0) and all(i in dna_leters for i in codon))
+    if isinstance(codon,list):
+        return all(((len(c)==3) and all(i in dna_leters for i in c)) for c in codon)
 
 def rename_keys(fasta_d): ### This funciton will re-write keys (names) to remove unwanted charecters and return a renamed (new keys) dictionary
     names = ['Abl','Src','Yes','LCK','Syk','CSK',
@@ -430,7 +554,7 @@ def Clean_all_gaps (fasta_dict):
     for key,sequence in fasta_dict.items(): #Remove all the gaps
         fasta_dict.update({key:''.join([ char for i,char in enumerate(sequence) if i in pos_to_leave ])})
             
-def Post_MAFFT_processing(dirname,finname,deletion_percentage=0.01,misalignment_cutoff=0.2):
+def Post_MAFFT_processing(dirname,finname,deletion_percentage=0.01,misalignment_cutoff=0.2): #Modifications after the alignment, mostly having to do with gaps.
     fasta_dict = fasta2dict(f"{dirname}/{finname}")
     # These functions **MODIFY** the fasta_dict by doing what their names say they do.
     Trim_N_C_Termini(fasta_dict)
@@ -565,12 +689,12 @@ def Select_Nodes_Suppliment(dirname,finname,cutoff=50):
     #return [n.split(',')[0] for n in nodes if n.split(',')[0] not in stinky_nodes] 
     return [n for n in nodes if n in stinky_nodes] #return the list of node names whose value is above the cutoff.
 
-def Select_Ancestor_Nodes(dirname,finname,cutoff=85):
+def Select_Ancestor_Nodes_OLD(dirname,finname,cutoff=85):
     #This will evaluate the tree, which is in Newick format, and select nodes of high enough confidence to reconstruct an ancestral library.
     #The .treefile has all of the confidence values, and the node names.
     with open(f'{dirname}/{finname}') as treefin:
         treefile = treefin.readlines()[0]
-    stinky_nodes=[] #these will be the nodes with poor values. This isn't quite the same value between *.contree and *.trefile, but close
+    Good_Nodes=[] #these will be the nodes with poor values. This isn't quite the same value between *.contree and *.trefile, but close
     nodes=treefile.split(')')#Let's split off just the information for each node, which is stored after every close parenthiesis.
     nodes.pop(0)#The above will split off a first section without a node. This does not cause any nodes to be lost.
     for i,node in enumerate(nodes): #rearanging the newick format a little. Each node in nodes will now be stored as "name,int,float"
@@ -578,9 +702,9 @@ def Select_Ancestor_Nodes(dirname,finname,cutoff=85):
             node_info=node.split(',')[0]
             #nodes[i]=f"{node_info.split('/')[0]},{(node_info.split('/')[1]).split(':')[0]},{node_info.split(':')[1]}"
             nodes[i]=node_info.split('/')[0]
-            if int((node_info.split('/')[1]).split(':')[0]) < cutoff: #Select the nodes which have a value above the cutoff.
+            if int((node_info.split('/')[1]).split(':')[0]) >= cutoff: #Select the nodes which have a value above the cutoff.
                 #tup = ((node_info.split('/')[0]),(node_info.split('/')[1]).split(':')[0])
-                stinky_nodes.append(nodes[i])
+                Good_Nodes.append(nodes[i])
         except:
             if node.strip() == 'Node1;':
                 pass #The root node doesn't have info - this prevents an error in handling that from causing problems
@@ -588,10 +712,51 @@ def Select_Ancestor_Nodes(dirname,finname,cutoff=85):
                 print(f'{node} caused problems :(')
                 print("There was an error handling the Newick Tree returned by IQTree - This likely indicates a bug with IQTree.")
                 raise ValueError("There was an error handling the Newick Tree returned by IQTree - This likely indicates a bug with IQTree.")
-    #return [n.split(',')[0] for n in nodes if n.split(',')[0] not in stinky_nodes] 
-    return [n for n in nodes if n not in stinky_nodes] #return the list of node names whose value is above the cutoff.
+    #return [n.split(',')[0] for n in nodes if n.split(',')[0] not in stinky_nodes]
+    return Good_Nodes #return the list of node names whose value is above the cutoff.
+
+def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high enough confidence to resurect ancestors from them.
+    #This will evaluate the tree, which is in Newick format, and select nodes of high enough confidence to reconstruct an ancestral library.
+    #The Phlyo.treefile has confidence values as (SH-aLRT/UFB), and the ASR.treefile has node names.
+    with open(f'{dirname}/IQTree_ASR/ASR.treefile') as ASRtreefin:
+        ASRtreefile = ASRtreefin.read()
+    with open(f'{dirname}/IQTree_Phylo/Phylo.treefile') as Phylotreefin:
+        Phylotreefile = Phylotreefin.read()
+    confident_nodes=[] #these will be the nodes with good values. This isn't quite the same value between *.contree and *.trefile, but close
+    ASRnodes=[n.split(',')[0].split(':') for n in ASRtreefile.split(')')]  #Let's split off just the information for each node, which is stored after every close parenthiesis.
+    Phylonodes=[n.split(',')[0].split(':') for n in Phylotreefile.split(')')]
+    ASRnodes.pop(0) #the first split is not actually a node.
+    Phylonodes.pop(0)#the first split is not actually a node.
+    for i in range(len(ASRnodes)-1): #We exclude the last node, because that's the root, which will mess up the below lines.
+        if (float(Phylonodes[i][0].split('/')[0]) > 80) and (float(Phylonodes[i][0].split('/')[1]) > 95): #If the SH-aLRT >80% and the ultrafast bootstraping is >95%
+            confident_nodes.append(ASRnodes[i][0]) #Record the name of the high-confidence nodes.
+    return confident_nodes #return the list of node names whose value is above the cutoff.
     
-def Statefile_to_Dict(dirname,finname,mode=3): #{NodeX:[(AA,[probs]),(AA,[probs]),(AA,[probs])...]}
+def Statefile_to_Dict(dirname): #{NodeX:[[probs],[probs],[probs],...]}
+    statefile_dict={} #This is a dicitonary made out of the statefile - its keys are the node names, 
+    #and its values are a list of tuples with the amino acid and list of amino acid distributions at each position.
+    node=[]
+    #This will parse the .state file for the desired nodes to get their AA distribution
+    with open(f'{dirname}/IQTree_ASR/ASR.state') as statefin: #Read in each line, skipping the header.
+        statelines=[]
+        for i,line in enumerate(statefin):
+            if i>8:
+                statelines.append(line)
+    #Now let's pull the data from each line
+    working_node=statelines[0].split()[0] #prime the working node
+    for line in statelines: # For every line in the state file
+        line_list = line.split() #Break up the line into columns
+        if working_node == line_list[0]: #If we're still working on the same node
+            node.append(line_list[3:]) #record the probability distribution of the position
+        else: #If we've come to the end of a node,
+            statefile_dict[working_node]=node #Add a key-value pair to the statefile dictionary that is the node name and the node's list
+            working_node = line_list[0] #update the working_node value
+            node=[] #Clear the working node list
+            node.append(line_list[3:]) #add to the node list a touple of the amino acid and the distribution of amino acids at that position.
+    statefile_dict[working_node]=node #Be sure to add the last node into the dictionary too!
+    return(statefile_dict)
+
+def Statefile_to_Dict_AAs(dirname,finname): #{NodeX:[AA,AA,AA,...]}
     statefile_dict={} #This is a dicitonary made out of the statefile - its keys are the node names, 
     #and its values are a list of tuples with the amino acid and list of amino acid distributions at each position.
     node=[]
@@ -606,12 +771,7 @@ def Statefile_to_Dict(dirname,finname,mode=3): #{NodeX:[(AA,[probs]),(AA,[probs]
     for line in statelines: # For every line in the state file
         line_list = line.split() #Break up the stuff
         if working_node == line_list[0]: #If we're still working on the same node
-            if mode==1:
-                node.append(line_list[2]) #record the amino acid at that position
-            if mode==2:
-                node.append(line_list[3:]) #record the probability distribution of the position
-            if mode==3: #returns both AA and Probability distribution
-                node.append((line_list[2],line_list[3:])) #add to the node list a touple of the amino acid and the distribution of amino acids at that position.
+            node.append(line_list[2]) #record the amino acid at that position
         else: #If we've come to the end of a node,
             statefile_dict[working_node]=node #Add a key-value pair to the statefile dictionary that is the node name and the node's list
             working_node = line_list[0] #update the working_node value
@@ -620,7 +780,7 @@ def Statefile_to_Dict(dirname,finname,mode=3): #{NodeX:[(AA,[probs]),(AA,[probs]
     statefile_dict[working_node]=node #Be sure to add the last node into the dictionary too!
     return(statefile_dict)
 
-def Binary_Gap_Analysis(dirname,finname):
+def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where gaps in the ancestral sequences reside
     if not os.path.isdir(f"{dirname}/IQTree_Binary"): #Make the directory
         os.mkdir(f"{dirname}/IQTree_Binary")
     fasta_dict = fasta2dict(f"{dirname}/{finname}")
@@ -656,29 +816,105 @@ def Binary_Gap_Analysis(dirname,finname):
     Clean_all_gaps(Consensus_Ancestors_with_Gaps)
     dict2fasta(Consensus_Ancestors_with_Gaps,f"{dirname}/Consensus_Ancestors_with_Gaps.fasta")
 
+def Degenerate_Nucleotide_Codon(AA_List, source='EColi'):  # This function takes a list of AAs for ONE POSITION and makes a degenerate codon for them.
+    # This is an area where the library size could be significantly improved upon - take a more detailed look here - high priority
+    if len(AA_List)==0:
+        return ''
+    while ('X' in AA_List):
+        AA_List.remove('X')
+        # Unknown amino acids can occur, but we're going to ignore them.
+    # This function takes a list of AAs for ONE POSITION and makes a degenerate codon for them.
+    for AA in AA_List:
+        if not Is_Valid_AA(AA):
+            raise ValueError ("That's not an amino acid abreviation....")
+    # Codon-based Lookup
+    codon_list=[] #A list of all the codons that need to be coded for (eg, ['atc','agc','gta'])
+    if (source=='EColi'):
+        for AA in AA_List:
+            codon_list.append(AA_to_Codon_Ecoli[AA])
+    elif (source=='Human'):
+        for AA in AA_List:
+            codon_list.append(AA_to_Codon_Human[AA])
+    else:
+        raise NameError("Please Specify EColi or Human as an expression organism.")
+    degenerate_codon = '' #The three-charecter degenerate codon made from the codons in codon_list
+    for pos in range(3): #For every position in the codon
+        bases_at_pos='' #bases_at_pos will be a list of all the nucleotide bases wanted at this position of the codon.
+        for codon in codon_list: #For every codon
+            if (codon[pos] not in bases_at_pos): #If that codon's base is not in the bases_at_pos already,
+                bases_at_pos+=codon[pos] #Add it
+        degenerate_codon+=Mixed_Bases_lookup[bases_at_pos] #What degenerate codon codes for the desired bases?
+    return degenerate_codon
+
+def Build_DNA_Sequence (Primer_Request, source='EColi'):
+    primer_txt = ''
+    if source == 'EColi':
+        for pos in Primer_Request: # pos is the list of AA at the respective position
+            if (len(pos)==1):
+                if (pos[0]!='-'): # For a gap in the sequence, we will record nothing.
+                    primer_txt+=(AA_to_Codon_Ecoli[pos[0]])
+            elif (len(pos)==2):
+                primer_txt+=(AA_Pair_lookup_EColi[ pos[0]+pos[1] ])
+            else:
+                primer_txt+=(Degenerate_Nucleotide_Codon(pos))
+    elif source == 'Human':
+        for pos in Primer_Request: # pos is the list of AA at the respective position
+            if (len(pos)==1):
+                if (pos[0]!='-'): # For a gap in the sequence, we will record nothing.
+                    primer_txt+=(AA_to_Codon_Human[pos[0]])
+            elif (len(pos)==2):
+                primer_txt+=(AA_Pair_lookup_Human[ pos[0]+pos[1] ])
+            else:
+                primer_txt+=(Degenerate_Nucleotide_Codon(pos))
+    else:
+        raise NameError ("The requested organism is not specified - please specify Human or EColi")
+    if not Is_Valid_Codon(primer_txt):
+        raise ValueError ("The primer generated was not a valid DNA sequence. No clue how that happened. If you're seeing this error, it's proabbly caused by a bug.")
+    return (primer_txt)
+
+def Make_Uncertianty_Libraries (dirname,statefile_dict,nodes,Cutoff=0.125): #Make Uncertianty Libraries for all ancestral sequences with a high enough confidence at thier node
+    if not (os.path.isdir(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff")):
+        os.mkdir(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff")
+    Consensus_Ancestors_with_Gaps = fasta2dict(f"{dirname}/Consensus_Ancestors_with_Gaps.fasta") #Be sure to import information about where gaps are in the ancestor sequences.
+    for node in nodes: #For every node of sufficently high quality, we're going to make a DNA template with uncertianty cutoffs.
+        Ancestor_with_Gaps = Consensus_Ancestors_with_Gaps[node]
+        node_seq_request=[] # A request is a list of (list of amino acids needed) at each position
+        Positions = Satefile_Dict[node]
+        for i,pos in enumerate(Positions): # For every position,
+            if Ancestor_with_Gaps[i]!='-': #If this position isn't a gap as determined by the Binary ASR
+                pos_AAs=[]
+                for j,prob in enumerate(pos): #For every probability at that position,
+                    if (float(prob) >= Cutoff): # If the amino acid is above the threshold
+                        pos_AAs.append(AA_key[j]) # Record that AA at that position
+                if not bool(pos_AAs): # Empty lists evaluate as false
+                    # If none of the amino acids have a high enough probability to pass the threshold, we'll just record the most likely one.
+                    pos_AAs=AA_key[pos.index(max(pos))]
+                node_seq_request.append(pos_AAs)
+        Degenerate_DNA = Build_DNA_Sequence(node_seq_request)#Make a DNA sequence with degnerate bases
+        with open(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff/{node}_DNA_Library.txt",'w+') as fout:
+            fout.write(Degenerate_DNA)
+
 HaloTag='SGSAEIGTGFPFDPHYVEVLGERMHYVDVGPRDGTPVLFLHGNPTSSYVWRNIIPHVAPTHRCIAPDLIGMGKSDKPDLGYFFDDHVRFMDAFIEALGLEEVVLVIHDWGSALGFHWAKRNPERVKGIAFMEFIRPIPTWDEWPEFARETFQAFRTTDVGRKLIIDQNVFIEGTLPCGVVRPLTEVEMDHYREPFLNPVDREPLWRFPNELPIAGEPANIVALVEEYMDWLHQSPVPKLLFWGTPGVLIPPAEAARLAKSLPNCKAVDIGPGLNLLQEDNPDLIGSEIARWLSTLEISG'
 OATP='-MDQNQHLNKTAEAQPSENKKTR-YCNGLKMFLAALSLSFIAKTLGAIIMKSSIIHIERRFEISSSLVGFIDGSFEIGNLLVIVFVSYFGSKLHRPKLIGIGCFIMGIGGVLTALPHFFMGYYRYSKETNINSSENSTSTLSTCLINQILSLNRASPEIVGKGCLKESGSYMWIYVFMGNMLRGIGETPIVPLGLSYIDDFAKEGHSSLYLGILNAIAMIGPIIGFTLGSLFSKMYVDIGYVDLSTIRITPTDSRWVGAWWLNFLVSGLFSIISSIPFFFLPQTPNKPQKERKA-SLSLHVLETNDEKDQTANLTN--QGKNITK-NVTG-FFQSFKSILTNPLYVMFVLLTLLQVSSYIGAFTYVFKYVEQQYGQPSSKANILLGVITIPIFASGMFLGGYIIKKFKLNTVGIAKFSCFTAVMSLSFYLLYFFILCENKSVAGLTMTYDGNNPVTSHRDV-PLSYCNSDCNCDESQWEPVCGNNGITYISPCLAGCKSSSGNKKP---IVFYNCSCLEVTGLQNRNYSAHLGECPRDDACTRKFYFFVAIQVLNLFFSALGGTSHVMLIVKIVQPELKSLALGFHSMVIRALGGILAPIYFGALIDTTCIKWSTNNCGTRGSCRTYNSTSFSRVYLGLSSMLRVSSLVLYIILIYAMKKKYQEKDINASENG-SVMDEANLESLN-KNKHFVPS--AGADSETHC----------'
 Estrogen='SNAKRSKKNSLALSLTADQMVSALLDAEPPILYSEYDPTRPFSEASMMGLLTNLADRELVHMINWAKRVPGFVDLTRHDQVHLLECAWLEILMIGLVWRSMEHPGKLLFAPNLLLDRNQGKCVEGMVEIFDMLLATSSRFRMMNLQGEEFVCLKSIILLNSGVYTFLSSTLKSLEEKDHIHRVLDKITDTLIHLMAKAGLTLQQQHQRLAQLLLILSHIRHMSNKGMEHLYSMKCKNVVPSYDLLLEMLDAHRLHAPT'
-directory='AutoASR'
-sequence=OATP.replace('-','')
-#Blastp_out_name = BlastP(directory,sequence,2000,0.3)
+directory='HPCC_Run_Oct_23'
+sequence=HaloTag.replace('-','')
+Blastp_out_name = BlastP(directory,sequence,2000,0.3)
 #Blastp_out_name = f"BlastP_Results.fasta"
-#CDHit_out_name = CDHit(directory,Blastp_out_name)
+CDHit_out_name = CDHit(directory,Blastp_out_name)
 #CDHit_out_name="CD-Hit.fasta"
-#MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
+MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
 #MAFFT_out_name="Mafft_Alignment.fasta"
-#Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
+Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
 #Post_MAFFT_name = 'Post_MAFFT_Cleaned.fasta'
-#IQTree_Phylo(directory, Post_MAFFT_name)
+IQTree_Phylo(directory, Post_MAFFT_name)
 #print("\n\nPhylogeny Finished\n\n")
-#IQTree_ASR(directory, Post_MAFFT_name)
+IQTree_ASR(directory, Post_MAFFT_name)
 #print("\n\nASR Finished\n\n")
-#Binary_Gap_Analysis(directory, Post_MAFFT_name)
+Binary_Gap_Analysis(directory, Post_MAFFT_name)
 #print("\n\nGaps Evaluated\n\n")
-#contree = f'{directory}/IQTree/IQTree_prelim_.contree'
-#treefile = f'{directory}/IQTree/IQTree_prelim_.treefile'
-#node_cutoff=90
-#Good_Ancestor_Nodes = Select_Ancestor_Nodes('.',treefile,node_cutoff) #Returns a list of nodes
-#Satefile_Dict = Statefile_to_Dict('.',statefile) #Returns a dictionary out of *.state file
-#amino_acid_key = ['A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V']
-os.system('afplay /System/Library/Sounds/Glass.aiff')
+Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
+Satefile_Dict = Statefile_to_Dict(directory) #Returns a dictionary out of *.state file
+Make_Uncertianty_Libraries(directory,Satefile_Dict,Good_Ancestor_Nodes)
+
+#os.system('afplay /System/Library/Sounds/Glass.aiff')
