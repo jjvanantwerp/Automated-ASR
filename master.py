@@ -1,22 +1,25 @@
 # Semi-Automation of the Ancestral Sequence Reconstruction Workflow
 # This is a program that constructs rough estimates of ancestral sequence reconstruction from an amino acid sequence.
 # This program requires instalation of the Bioservieces module
-# Written by James VanAntwerp in September 2021 - vanant25@msu.edu , Michigan State University, East Lansing, MI, USA.
+# Written by James VanAntwerp in September 2021 - vanant25@msu.edu
 # Written by Pattrick Finneran, Menten AI, Palo Alto, California, United States of America
 # Written for the Woldring Lab, Michigan State University in East Lansing, Michigan, USA.
 '''
-    The program will make the following directory structure:
+The program will make the following directory structure:
     ROOT/
     |--master.py 
     |--AutoASR/
     | |--HexKeytoNames.csv
-    | |--CD-Hit.fasta.clstr
-    | |--BlastP_XML
+    | |--CD-Hit_Inital_Sequences.fasta.clstr
     | |--*.fasta
+    | |--Sequence_Supplement/
+    | | |--*_HexKeytoNames.csv
+    | | |--*_BlastP_Results.fasta
     | |--IQTree_Phylo/
     | | |--Phylo.*
     | |--IQTree_ASR/
     | | |--ASR.*
+    | | |--Confidences.txt
     | |--IQTree_Binary/
     | | |--Binary_Alignment.fasta
     | | |--Binary.*
@@ -168,7 +171,7 @@ def dict2fasta(fasta_d,fname): ### Saves dictionary to fasta where the dictionar
         for key,seq in fasta_d.items():
             out_fasta.write(f'>{key}\n{seq}\n')
 
-def Is_Valid_AA(AA):
+def Is_Valid_AA(AA): #Is the argurment a valid amino acid or list of amino acids
     not_AAs = ['B','O','J','U','Z']
     if isinstance(AA,str):  # This block lets us evaluate strings of amino acids
         return(((AA in ascii_letters) or( AA == '-')) and (AA not in not_AAs))
@@ -179,93 +182,204 @@ def Is_Valid_AA(AA):
     else:
         raise ValueError ("A bad type was evaluated as an amino acid list....")
 
-def Is_Valid_Codon(codon):
+def Is_Valid_Codon(codon): #Is the argurment a valid codon
     dna_leters = ['a','c','t','g','r','y','m','k','s','w','h','b','v','d','n']
     if isinstance(codon,str):
         return (((len(codon)%3)==0) and all(i in dna_leters for i in codon))
     if isinstance(codon,list):
         return all(((len(c)==3) and all(i in dna_leters for i in c)) for c in codon)
 
-def NCBI_to_XML(diroutname,sequence,hits=1000,expect_value=0.30): #Interact with BlastP, and record the XML
+def NCBI_to_XML(dirname,sequence,hits=1000,expect_value=0.30): #Interact with BlastP, and record the XML
     # For the given sequence, we will run a BlastP search and parse the XML return to make a multi-fasta file
-    print("Acessing the NCBI database....")
     blast_result_handle = NCBIWWW.qblast("blastp","nr", sequence,hitlist_size=hits,expect=expect_value)
-    with open(f"./{diroutname}/BlastP_XML","w+") as fout:
+    with open(f"./{dirname}/BlastP_XML","w+") as fout:
         fout.write(blast_result_handle.read())
-    blastp_xml = ET.parse(f"./{diroutname}/BlastP_XML")
-    #os.remove(f"./{diroutname}/BlastP_XML")
+    blastp_xml = ET.parse(f"./{dirname}/BlastP_XML")
+    os.remove(f"./{dirname}/BlastP_XML")
     return(blastp_xml)
 
-def Parse_BlastP_XML(diroutname,blastp_xml,sequence): #Parse the BlastP XML - record Hex keys and Fasta
+def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_hex=None): #Parse the BlastP XML - record Hex keys and Fasta
     Hex_Fasta_Dict={}
-    with open(f"./{diroutname}/HexKeytoNames.csv","w+") as fout:
-        hexcount=0
-        fout.write(f"Hexadecimal Name,BlastP Name\n")
-        #Parsing the XML object, looking for hits
-        for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
-            name = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
-            seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
-            #If the sequence doesn't have unknowns amino acids (annoying) then record it.
-            #The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
-            #if (("X" not in seq) and (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
-            if ("X" not in seq):
-                hexcount+=1
-                hexkey='Seq_'
-                if 'predicted' in name.lower() or 'hypothetical' in name.lower():
-                    hexkey += 'P'
-                hexkey += str(hex(hexcount).lstrip('0x'))
-                fout.write(f"{hexkey},{name}\n")
-                Hex_Fasta_Dict[hexkey]=seq
-    with open(f"./{diroutname}/BlastP_Results.fasta","w+") as blastp_file:
-        blastp_file.write(f">User_Sequence\n{sequence}\n")
-        for Hex,Sequence in Hex_Fasta_Dict.items():
-            #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
-            blastp_file.write(f">{Hex}\n")
-            blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
+    if sequence_hex is None: #If no sequence_hex is identified (Meaning this is the search with the user sequence)
+        with open(f"./{dirname}/HexKeytoNames.csv","w+") as fout:
+            hexcount=0
+            fout.write(f"Hexadecimal Name,BlastP Name\n")
+            #Parsing the XML object, looking for hits
+            for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
+                name = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
+                #If the sequence doesn't have unknowns amino acids (annoying) then record it.
+                #The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
+                #if (("X" not in seq) and (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
+                if ("X" not in seq):
+                    hexcount+=1
+                    hexkey='Seq_'
+                    if 'predicted' in name.lower() or 'hypothetical' in name.lower():
+                        hexkey += 'P'
+                    hexkey += str(hex(hexcount).lstrip('0x'))
+                    fout.write(f"{hexkey},{name}\n")
+                    Hex_Fasta_Dict[hexkey]=seq
+        with open(f"./{dirname}/BlastP_Results.fasta","w+") as blastp_file:
+            blastp_file.write(f">User_Sequence\n{sequence}\n")
+            for Hex,Sequence in Hex_Fasta_Dict.items():
+                #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
+                blastp_file.write(f">{Hex}\n")
+                blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
+        Remove_Duplicate_Sequences_FASTA(dirname,"BlastP_Results.fasta") #Modify the BlastP return to remove duplicate sequences.
+    elif isinstance(sequence_hex,str): #If a sequence_hex has been provided, this means we're doing Supplement searches so our output directory structure should be different.
+        with open(f"./{dirname}/{sequence_hex}_HexKeytoNames.csv","w+") as fout:
+            hexcount=0
+            fout.write(f"Hexadecimal Name,BlastP Name\n")
+            #Parsing the XML object, looking for hits
+            for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
+                name = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
+                #If the sequence doesn't have unknowns amino acids (annoying) then record it.
+                #The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
+                #if (("X" not in seq) and (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
+                if ("X" not in seq):
+                    hexcount+=1
+                    hexkey=sequence_hex+'.' #All of the Supplemented sequences will have the sequence whose search pulled them up as a prefix on their hex value (Seq_62e.1a)
+                    if 'predicted' in name.lower() or 'hypothetical' in name.lower():
+                        hexkey += 'P'
+                    hexkey += str(hex(hexcount).lstrip('0x'))
+                    fout.write(f"{hexkey},{name}\n")
+                    Hex_Fasta_Dict[hexkey]=seq
+        with open(f"./{dirname}/{sequence_hex}_BlastP_Results.fasta","w+") as blastp_file:
+            blastp_file.write(f">{sequence_hex}\n{sequence}\n")
+            for Hex,Sequence in Hex_Fasta_Dict.items():
+                #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
+                blastp_file.write(f">{Hex}\n")
+                blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
+    else:
+        print("sequence_hex was not a string type")
+        raise ValueError ("sequence_hex was not a string type")
 
-def BlastP(diroutname,sequence,hits,expect_value): #This function takes an amino acid sequence, submitts a BlastP search, and records the result in a fasta file
-    if not (os.path.isdir(diroutname)):
-        os.mkdir(diroutname)
+def BlastP(dirname,sequence,hits=2000,expect_value=0.2,sequence_hex=None): #This function takes an amino acid sequence, submitts a BlastP search, and records the result in a fasta file
+    if not (os.path.isdir(dirname)):
+        os.mkdir(dirname)
     sequence=sequence.replace('-','')
     sequence=sequence.replace('X','')
     #User_Sequence_Length=len(sequence)
     if all([char for char in sequence if (char.isalpha())]):
         try:
-            blastp_xml=NCBI_to_XML(diroutname,sequence,hits,expect_value)
+            blastp_xml=NCBI_to_XML(dirname,sequence,hits,expect_value)
         except:
             raise RuntimeError("There was an error fetching the BlastP results.")
             print("There was an error fetching the BlastP results")
         try:
             # Now, we parse the XML object and make a multi-fasta file. We will assign each sequence a hexadecimal name.
-            # We also write the fasta file which is the result of our BlastP search  
-            Parse_BlastP_XML(diroutname,blastp_xml,sequence)
+            # We also write the fasta file which is the result of our BlastP search
+            # The output behavior must be different if this the user sequence or a Supplement search though.
+            if sequence_hex is None:  
+                print("Acessing the NCBI database....")
+                Parse_BlastP_XML(dirname,blastp_xml,sequence)
+            elif isinstance(sequence_hex,str):
+                Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_hex)
+            else:
+                print("sequence_hex was not a string type")
+                raise ValueError ("sequence_hex was not a string type")
         except:
-            raise RuntimeError("There was an error recording the BlastP Results")
             print("There was an error recording the BlastP Results")
+            raise RuntimeError("There was an error recording the BlastP Results")
     else:
-        raise ValueError("Invalid sequence submitted for BlastP search")
         print("Invalid sequence submitted for BlastP search")
+        raise ValueError("Invalid sequence submitted for BlastP search")
     return("BlastP_Results.fasta")
 
-def CDHit(dirname,finname,identity=0.95): #Run CD-Hit
+def CDHit(dirname,finname,identity=0.95): #Run CD-Hit, and Supplement low-coverage regions of the tree
     #Determine the right n for the identity
+    n=CDHit_Cutoff(identity)
+    Sequences_List_for_Remove=[]
+    Supplemented = Supplement_Sequences(dirname,finname) #We'll begin by supplementing the low-confidence areas immediately.
+    dict2fasta(Pop_Dissimilar_Sequences_FASTA(dirname,Supplemented),f"{dirname}/Sequence_Supplement/Supplimented_Trimmed_BlastP.fasta")
+    try:
+        os.system(f'cd-hit -i {dirname}/Sequence_Supplement/Supplimented_Trimmed_BlastP.fasta -o {dirname}/CD-Hit_Final_Sequences.fasta -c {identity} -n {n}') #Run CD-Hit with a 90% cutoff
+    except:
+        print("There was an error running CD-Hit.")
+        raise RuntimeError("There was an error running CD-Hit.")
+    return("CD-Hit_Final_Sequences.fasta")    
+
+def CDHit_Cutoff(identity):
     if (identity<=0.4 or identity>1 ):
         raise ValueError("The CD-Hit identity is invalid")
         print("The CD-Hit identity is invalid")
     elif identity>0.7:
-        n=5
+        return(5)
     elif identity>0.6:
-        n=4
+        return(4)
     elif identity>0.5:
-        n=3
+        return(3)
     elif identity>0.4:
-        n=2
+        return(2)
+
+def Remove_Duplicate_Sequences_FASTA(dirname,fpath): #This function MODIFIES a fasta file to remove highly-duplicate sequences.
     try:
-        os.system(f'cd-hit -i {dirname}/{finname} -o {dirname}/CD-Hit.fasta -c {identity} -n {n}') #Run CD-Hit
+        os.system(f'cd-hit -i {dirname}/{fpath} -o {dirname}/{fpath[:-6]}_temp.fasta -c 0.99 -n 5') #Run CD-Hit with a 99% cutoff to remove duplicates/near duplicates
+    except:
+        print("There was an error running CD-Hit.")
+        raise RuntimeError("There was an error running CD-Hit.")
+    os.remove(f"{dirname}/{fpath}")
+    os.remove(f"{dirname}/{fpath[:-6]}_temp.fasta.clstr")
+    os.rename(f"{dirname}/{fpath[:-6]}_temp.fasta",f"{dirname}/{fpath}") #Replace the original file with one that has no duplicate sequences.
+
+def Pop_Dissimilar_Sequences_FASTA(dirname,fpath): #This function return a dictionary of a fasta file with removed remove highly-dissimilar sequences (50% similarity)
+    Sequences_List_for_Remove=[]
+    #This block will run CD-Hit to remove all sequences below 50% similarity. This removes sequences that aren't similar enough to what we want.
+    try:
+        os.system(f'cd-hit -i {dirname}/{fpath} -o {dirname}/temp1_{fpath} -c 0.5 -n {CDHit_Cutoff(0.5)}') 
     except:
         raise RuntimeError("There was an error running CD-Hit.")
         print("There was an error running CD-Hit.")
-    return("CD-Hit.fasta")    
+    #Now we look at the output from that CD-Hit and remove sequences from single-sequence clusters; that is, sequences which have less than 50% similarity with anything else in the dataset
+    with open(f"{dirname}/temp1_{fpath}.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
+        clusters=(fin.read()).split('>Cluster ')
+        for cluster in clusters: #For each cluster
+            seqs=cluster.split('>') #Split off the header from each sequence name
+            if len(seqs)==2: #If there is only one sequence in the cluster
+                Sequences_List_for_Remove.append((seqs[1])[:-6]) #Seperate and record the name.
+    fasta_dict=fasta2dict(f"{dirname}/{fpath}") #read in all the seuqences
+    for seq in Sequences_List_for_Remove: #Remove those that don't have high enough similarity
+        fasta_dict.pop(seq)
+    os.remove(f"{dirname}/temp1_{fpath}")
+    os.remove(f"{dirname}/temp1_{fpath}.clstr")
+    return(fasta_dict)
+
+def Supplement_Sequences(dirname,finname): #Find areas of poor coverage on the current tree and get additional BlastP search results.
+    if not (os.path.isdir(f"{dirname}/Sequence_Supplement")): #Make a directory for this sequence Supplementing process
+        os.mkdir(f"{dirname}/Sequence_Supplement")
+    fasta_dict = Pop_Dissimilar_Sequences_FASTA(dirname,finname)
+    #Now we can begin to identify sequences which are similar enough to the rest of the dataset to be retained, but dissimilar enough that they would benefit from supplimenting.
+    identity=0.7
+    sequences_list_for_search=['']*52
+    dict2fasta(fasta_dict,f"{dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta")
+    while(len(sequences_list_for_search)>50): #This ensures we don't have too many sequences that we try to Supplement
+        sequences_list_for_search=[]   
+        try:
+            os.system(f'cd-hit -i {dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta -o {dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta -c {identity} -n {CDHit_Cutoff(identity)}') #Run CD-Hit with a 60% cutoff to identify 'loner' sequences
+        except:
+            raise RuntimeError("There was an error running CD-Hit.")
+            print("There was an error running CD-Hit.")
+        with open(f"{dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
+            clusters=(fin.read()).split('>Cluster ')
+        for cluster in clusters: #For each cluster
+            seqs=cluster.split('>') #Split off the header from each sequence name
+            if len(seqs)==2: #If there is only one sequence in the cluster
+                sequences_list_for_search.append((seqs[1])[:-6]) #Seperate and record the name.
+        identity  -= 0.05
+    #Now we can submit a BlastP search for all of the sequences that need to be supplimented, and write all sequences together as one file.
+    files_list=[f"{dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta"]
+    print(f"Supplementing {len(sequences_list_for_search)} sequences with poor neighboorhood coverage.")
+    for sequence_hex in sequences_list_for_search:
+        if not os.path.exists(f"{dirname}/Sequence_Supplement/{sequence_hex}_BlastP_Results.fasta"):
+            BlastP(f"{dirname}/Sequence_Supplement",fasta_dict[sequence_hex],50,0.01,sequence_hex)  #Now we submit a BlastP search, but override the default expect and hits to get a more narrow set of sequences.
+            files_list.append(f"{dirname}/Sequence_Supplement/{sequence_hex}_BlastP_Results.fasta") #We also record a list of all the output fasta files to concatanate them together later.
+    with open(f"{dirname}/Sequence_Supplement/Supplemented_BlastP_Sequences.fasta","w+") as fout:                                 #Now we need to write all of our Supplemented sequence searches together as one fasta file.
+        for fname in files_list:
+            with open (fname) as supfile:
+                fout.write(supfile.read())
+    Remove_Duplicate_Sequences_FASTA(dirname,"Sequence_Supplement/Supplemented_BlastP_Sequences.fasta")
+    return(f"Sequence_Supplement/Supplemented_BlastP_Sequences.fasta")
 
 def MAFFT(dirname,finname,sequence): #Run MAFFT
     #Consider using subprocesses instead of os, because we can redirect stdout
@@ -384,66 +498,9 @@ def Post_MAFFT_processing(dirname,finname,deletion_percentage=0.01,misalignment_
         Clean_all_gaps(fasta_dict)#Clean
         User_Sequence=fasta_dict.get("User_Sequence")#Update
     dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_Cleaned.fasta')
-    '''
-        Boolean_Gap_Positions=[]
-        User_Sequence=fasta_dict.get("User_Sequence")
-        #Tally positions with and without gaps in the provided sequence in the alignment
-        for pos in User_Sequence:
-            if pos =='-':
-                Boolean_Gap_Positions.append(False)
-            else:
-                Boolean_Gap_Positions.append(True)
-        #Check all the other sequences to see how often they diagree
-        for Name,Seq in fasta_dict.items():#For all sequences
-            score=0 #starting with a clean slate
-            for i,residue in enumerate(Seq):
-                if Boolean_Gap_Positions[i]: #If the User sequence has an ammino acid and this sequcne does not (deletion)
-                    if (residue == '-'):
-                        score+=1 #Mark it down
-                elif(residue != '-'): #Or if the User sequence has a gap and this sequnce does not (insertion)
-                    score+=1 #Mark it down
-            if (score>(misalignment_cutoff*len(Seq))):#If more than the specified % of positions disagree,
-                Misaligned_Sequences.append(Name) #Add it to the blacklist
-        #Remove the misaligned sequences
-        for Name in Misaligned_Sequences:
-            fasta_dict.pop(Name)
-        #Remove all gaps in the alignment, and re-align.
-        for key,sequence in fasta_dict.items(): #Remove all the gaps
-            fasta_dict.update({key:''.join([ char for char in sequence if char != '-' ])})
-        #store as a file for MAFFT alignment, run the alignment, and remove the temporary file.
-        dict2fasta(fasta_dict,'temporary1.fasta')
-        try:
-            #os.system(str) Executes command of str in the directory from which the python script is executed.
-            os.system(f'mafft temporary1.fasta > temporary2.fasta') 
-        except:
-            raise RuntimeError("There was an error aligning the cleaned sequences.")
-            print("There was an error ligning the cleaned sequences.")
-        os.remove('temporary1.fasta')
-        '''
-    '''
-        Misaligned_Sequences=[]
-        #Clean up the sequences that remain
-        gap_tally = [0]*(len(Boolean_Gap_Positions))
-        number_of_sequences=len(fasta_dict)
-        positions_to_pop=[]
-        for key in fasta_dict.keys(): #For each position in the alignment 
-            i=0
-            for residue in fasta_dict[key]:
-                if (residue == '-'): #Tally the numer of sequences that have a gap
-                    gap_tally[i]+=1
-                i+=1
-        i=0
-        for position in gap_tally: #For each position in the alignment
-            if ((position/number_of_sequences)==1): #If all sequences have a gap,
-                positions_to_pop.append(i) #remember to remove that position from the whole alignment.
-            i+=1
-        for key in fasta_dict.keys(): #For each sequence in the alignment
-            #Reassemble the sequence using only positions from the alignment that were not majority-gaps
-            fasta_dict.update({key:''.join([ fasta_dict.get(key)[i] for i in range(len(fasta_dict.get(key))) if i not in positions_to_pop ])})
-        '''    
     return('Post_MAFFT_Cleaned.fasta')
 
-def IQTree_Phylo(dirname,finname): #finname is the alignment
+def IQTree_Phylo(dirname,finname): #Construct a phylogenetic tree, and determine a good model.
     if not os.path.isdir(f"{dirname}/IQTree_Phylo"): #Make the directory
         os.mkdir(f"{dirname}/IQTree_Phylo")
     try:
@@ -453,7 +510,7 @@ def IQTree_Phylo(dirname,finname): #finname is the alignment
         raise RuntimeError("There was an error building the phylogeny in IQTree.")
         print("There was an error building the phylogeny in IQTree.")
 
-def IQTree_ASR(dirname,finname): #finname is the alignmen
+def IQTree_ASR(dirname,finname): #Using the tree/model from the phylogney, do the ASR
     model=''
     try: #this can fail because for some reason HPCC tries to run it before the IQTree_Phylo has finished running.
         with open(f"{dirname}/IQTree_Phylo/Phylo.iqtree") as fin: #we need to go to the .iqtree file from the phylogony and find the best model for this data set. This will save a ton of time.
@@ -477,34 +534,12 @@ def IQTree_ASR(dirname,finname): #finname is the alignmen
     except:
         raise RuntimeError("There was an error conducting ASR in IQTree.")
         print("There was an error conducting ASR in IQTree.")
-
-def Select_Nodes_Suppliment(dirname,finname,cutoff=50):
-    #This will evaluate the tree, which is in Newick format, and select nodes of high enough confidence to reconstruct an ancestral library.
-    #The .treefile has all of the confidence values, and the node names.
-    with open(f'{dirname}/{finname}') as treefin:
-        treefile = treefin.readlines()[0]
-    stinky_nodes=[] #these will be the nodes with poor values. This isn't quite the same value between *.contree and *.trefile, but close
-    nodes=treefile.split(')')#Let's split off just the information for each node, which is stored after every close parenthiesis.
-    nodes.pop(0)#The above will split off a first section without a node. This does not cause any nodes to be lost.
-    for i,node in enumerate(nodes): #rearanging the newick format a little. Each node in nodes will now be stored as "name,int,float"
-        try:
-            node_info=node.split(',')[0]
-            #nodes[i]=f"{node_info.split('/')[0]},{(node_info.split('/')[1]).split(':')[0]},{node_info.split(':')[1]}"
-            nodes[i]=node_info.split('/')[0]
-            if int((node_info.split('/')[1]).split(':')[0]) < cutoff: #Select the nodes which have a value above the cutoff.
-                #tup = ((node_info.split('/')[0]),(node_info.split('/')[1]).split(':')[0])
-                stinky_nodes.append(nodes[i])
-        except:
-            if node.strip() == 'Node1;':
-                pass #The root node doesn't have info - this prevents an error in handling that from causing problems
-            else:
-                print(f'{node} caused problems :(')
-                print("There was an error handling the Newick Tree returned by IQTree - This likely indicates a bug with IQTree.")
-                raise ValueError("There was an error handling the Newick Tree returned by IQTree - This likely indicates a bug with IQTree.")
-    #return [n.split(',')[0] for n in nodes if n.split(',')[0] not in stinky_nodes] 
-    return [n for n in nodes if n in stinky_nodes] #return the list of node names whose value is above the cutoff.
+    ASR_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_ASR/ASR.state") #Returns a dictionary out of *.state file
+    return(ASR_Statefile_Dict)
 
 def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high enough confidence to resurect ancestors from them.
+    UFB_Supports=[]
+    SHALRT_Supports=[]
     #This will evaluate the tree, which is in Newick format, and select nodes of high enough confidence to reconstruct an ancestral library.
     #The Phlyo.treefile has confidence values as (SH-aLRT/UFB), and the ASR.treefile has node names.
     with open(f'{dirname}/IQTree_ASR/ASR.treefile') as ASRtreefin:
@@ -517,17 +552,28 @@ def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high en
     ASRnodes.pop(0) #the first split is not actually a node.
     Phylonodes.pop(0)#the first split is not actually a node.
     for i in range(len(ASRnodes)-1): #We exclude the last node, because that's the root, which will mess up the below lines.
+        UFB_Supports.append(float(Phylonodes[i][0].split('/')[1]))
+        SHALRT_Supports.append(float(Phylonodes[i][0].split('/')[0]))
         if (float(Phylonodes[i][0].split('/')[0]) > 80) and (float(Phylonodes[i][0].split('/')[1]) > 95): #If the SH-aLRT >80% and the ultrafast bootstraping is >95%
             confident_nodes.append(ASRnodes[i][0]) #Record the name of the high-confidence nodes.
+    SHALRT_mean = sum(SHALRT_Supports)/len(SHALRT_Supports)
+    UFB_mean = sum(UFB_Supports)/len(UFB_Supports)
+    with open(f"{dirname}/IQTree_Phylo/Supports.txt",'w+') as fout:
+        fout.write(f"The phylogenetic tree has a mean ultra-fast bootstrap support of {round(UFB_mean)}%. For this method, 95% is considered the threshold of quality.\n")
+        fout.write(f"{len([n for n in UFB_Supports if n > 95])} out of {len(UFB_Supports)} nodes have an ultra-fast bootstrap support above 95%.\n")
+        fout.write(f"The standard deviation of ultra-fast bootstrap support is {round(((1/len(UFB_Supports))*sum([(x-UFB_mean)**2 for x in UFB_Supports]))**0.50,1)}%.\n\n")
+        fout.write(f"The phylogenetic tree has a mean SH-aLRT support of {round(SHALRT_mean)}%. For this method, 80% is considered the threshold of quality.\n")
+        fout.write(f"{len([n for n in SHALRT_Supports if n > 80])} out of {len(SHALRT_Supports)} nodes have a SH-aLRT support above 80%.\n")
+        fout.write(f"The standard deviation of SH-aLRT support is {round(((1/len(SHALRT_Supports))*sum([(x-SHALRT_mean)**2 for x in SHALRT_Supports]))**0.50,1)}%.\n")
     return confident_nodes #return the list of node names whose value is above the cutoff.
     
-def Statefile_to_Dict(dirname): #{NodeX:[[probs],[probs],[probs],...]}
+def Statefile_to_Dict(dirname,fname): #Parse the statefile into a dictionary and record the confidence values.
     statefile_dict={} #This is a dicitonary made out of the statefile - its keys are the node names, 
     #and its values are a list of tuples with the amino acid and list of amino acid distributions at each position.
-    node=[]
+    node_distribution=[]
+    statelines=[]
     #This will parse the .state file for the desired nodes to get their AA distribution
-    with open(f'{dirname}/IQTree_ASR/ASR.state') as statefin: #Read in each line, skipping the header.
-        statelines=[]
+    with open(f'{dirname}/{fname}') as statefin: #Read in each line, skipping the header.
         for i,line in enumerate(statefin):
             if i>8:
                 statelines.append(line)
@@ -536,52 +582,57 @@ def Statefile_to_Dict(dirname): #{NodeX:[[probs],[probs],[probs],...]}
     for line in statelines: # For every line in the state file
         line_list = line.split() #Break up the line into columns
         if working_node == line_list[0]: #If we're still working on the same node
-            node.append(line_list[3:]) #record the probability distribution of the position
+            int_line_list = list(map(float, line_list[3:]))
+            node_distribution.append(int_line_list) #record the probability distribution and the maximum probability of the position
         else: #If we've come to the end of a node,
-            statefile_dict[working_node]=node #Add a key-value pair to the statefile dictionary that is the node name and the node's list
+            statefile_dict[working_node]=node_distribution #Add a key-value pair to the statefile dictionary that is the node name and the node's list
             working_node = line_list[0] #update the working_node value
-            node=[] #Clear the working node list
-            node.append(line_list[3:]) #add to the node list a touple of the amino acid and the distribution of amino acids at that position.
-    statefile_dict[working_node]=node #Be sure to add the last node into the dictionary too!
-    return(statefile_dict)
+            node_distribution=[] #Clear the working node lists
+            int_line_list = list(map(float, line_list[3:]))
+            node_distribution.append(int_line_list) #add to the node list the probabbilty distribution and the maximum probability at that position
+    statefile_dict[working_node]=node_distribution #Be sure to add the last node into the dictionaries too!
+    return(statefile_dict)    #Dictionary format looks like {NodeX:[[probs],[probs],[probs],...]}
 
-def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where gaps in the ancestral sequences reside
+def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where gaps in the ancestral sequences reside. Returns the Binary_Statefile_Dict
     if not os.path.isdir(f"{dirname}/IQTree_Binary"): #Make the directory
         os.mkdir(f"{dirname}/IQTree_Binary")
     fasta_dict = fasta2dict(f"{dirname}/{finname}")
     binary_dict={}
     for key,seq in fasta_dict.items(): #Make a binary alignment of the input fasta
-        binary_dict[key]=(''.join(['0' if aa =='-' else '1' for aa in seq])) #This line is taken from Ben - how to give proper credit?
-    dict2fasta(binary_dict,f"{dirname}/IQTree_Binary/Binary_Alignment.fasta")
+        binary_dict[key]=(''.join(['0' if aa =='-' else '1' for aa in seq])) #This line is taken from Ben - how to give proper credit? 
+        #Note that a 0 is a gap and a 1 is an AA 
+    dict2fasta(binary_dict,f"{dirname}/IQTree_Binary/Binary_Alignment.fasta") #Write to file for IQTree
     try:
         os.system(f'iqtree -s {dirname}/IQTree_Binary/Binary_Alignment.fasta -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_Binary/Binary -blfix -asr -m GTR2+FO -redo -nt AUTO')
     except:
         print("There was an error determining gaps in the ancestral sequence")
         raise RuntimeError("There was an error determining gaps in the ancestral sequence")
-    Binary_Statefile_dict = Statefile_to_Dict(dirname,"IQTree_Binary/Binary.state")
-    ASR_Statefile_dict = Statefile_to_Dict(dirname,"IQTree_ASR/ASR.state")
+    Binary_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_Binary/Binary.state")
+    ASR_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_ASR/ASR.state")
     Consensus_Ancestors_with_Gaps={}
     Pos_with_Gaps={} #dictionary of {NodeX:[list of gaps at NodeX]}
     #Find positions that are actually gaps in the ASR
-    for node,item in Binary_Statefile_dict.items():
+    for node,item in Binary_Statefile_Dict.items():
         gap_pos=[]#list of positions with gaps
         for i,pos in enumerate(item): #each position
-            if pos[0]=='0':#If the posotion has majority gap
+            if float(pos[0])>0.5:#If the posotion has majority gap
+            #The reason I've written it this was is that when the chances are  close together (0.501 to 0.499) IQTree puts a gap in the binary gap analysis *facepalm*
                 gap_pos.append(i)
         Pos_with_Gaps[node]=gap_pos #At each node, record the positions in the ancestral sequence that has majority node.
     #Merge the Sequence ASR with the gap ASR
-    for node,item in ASR_Statefile_dict.items():
+    for node,cons_list in ASR_Statefile_Dict.items():#node is name, cons_list is list of (list of AA confidence values) for each position
         consensus_seq=''
-        for i,pos in enumerate(item):
-            if i in Pos_with_Gaps[node]: #If this position at this node is likely a gap, add a gap to the consensus sequence
+        for i,pos in enumerate(cons_list):#pos is the position of ancestor at node
+            if i in (Pos_with_Gaps[node]): #If this position at this node is likely a gap, add a gap to the consensus sequence
                 consensus_seq+='-'
             else:
-                consensus_seq+=pos[0] #Otherwise, add the amino acid from ASR
+                consensus_seq+= AA_key[pos.index(max(pos))] #Otherwise, add the amino acid from ASR
         Consensus_Ancestors_with_Gaps[node]=consensus_seq
     Clean_all_gaps(Consensus_Ancestors_with_Gaps)
     dict2fasta(Consensus_Ancestors_with_Gaps,f"{dirname}/Consensus_Ancestors_with_Gaps.fasta")
+    return(Binary_Statefile_Dict)
 
-def Degenerate_Nucleotide_Codon(AA_List, source='EColi'):  # This function takes a list of AAs for ONE POSITION and makes a degenerate codon for them.
+def Degenerate_Nucleotide_Codon(AA_List, source='EColi'):  #This function takes a list of AAs for ONE POSITION and makes a degenerate codon for them.
     # This is an area where the library size could be significantly improved upon - take a more detailed look here - high priority
     if len(AA_List)==0:
         return ''
@@ -637,19 +688,17 @@ def Build_DNA_Sequence (Primer_Request, source='EColi'):
         raise ValueError ("The primer generated was not a valid DNA sequence. No clue how that happened. If you're seeing this error, it's proabbly caused by a bug.")
     return (primer_txt)
 
-def Make_Uncertianty_Libraries (dirname,statefile_dict,nodes,Cutoff=0.125): #Make Uncertianty Libraries for all ancestral sequences with a high enough confidence at thier node
+def Make_Uncertianty_Libraries (dirname,ASR_Statefile_Dict,Binary_Statefile_Dict,nodes,Cutoff=0.125): #Make Uncertianty Libraries for all ancestral sequences with a high enough confidence at thier node
     if not (os.path.isdir(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff")):
         os.mkdir(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff")
-    Consensus_Ancestors_with_Gaps = fasta2dict(f"{dirname}/Consensus_Ancestors_with_Gaps.fasta") #Be sure to import information about where gaps are in the ancestor sequences.
     for node in nodes: #For every node of sufficently high quality, we're going to make a DNA template with uncertianty cutoffs.
-        Ancestor_with_Gaps = Consensus_Ancestors_with_Gaps[node]
         node_seq_request=[] # A request is a list of (list of amino acids needed) at each position
-        Positions = Satefile_Dict[node]
+        Positions = ASR_Statefile_Dict[node]
         for i,pos in enumerate(Positions): # For every position,
-            if Ancestor_with_Gaps[i]!='-': #If this position isn't a gap as determined by the Binary ASR
+            if (Binary_Statefile_Dict[node][i][0])>0.5: #If this position isn't a gap as determined by the Binary ASR
                 pos_AAs=[]
                 for j,prob in enumerate(pos): #For every probability at that position,
-                    if (float(prob) >= Cutoff): # If the amino acid is above the threshold
+                    if (prob) > Cutoff: # If the amino acid is above the threshold
                         pos_AAs.append(AA_key[j]) # Record that AA at that position
                 if not bool(pos_AAs): # Empty lists evaluate as false
                     # If none of the amino acids have a high enough probability to pass the threshold, we'll just record the most likely one.
@@ -659,27 +708,39 @@ def Make_Uncertianty_Libraries (dirname,statefile_dict,nodes,Cutoff=0.125): #Mak
         with open(f"{dirname}/Ancestral_DNA_{Cutoff*100}%_Cutoff/{node}_DNA_Library.txt",'w+') as fout:
             fout.write(Degenerate_DNA)
 
-HaloTag='SGSAEIGTGFPFDPHYVEVLGERMHYVDVGPRDGTPVLFLHGNPTSSYVWRNIIPHVAPTHRCIAPDLIGMGKSDKPDLGYFFDDHVRFMDAFIEALGLEEVVLVIHDWGSALGFHWAKRNPERVKGIAFMEFIRPIPTWDEWPEFARETFQAFRTTDVGRKLIIDQNVFIEGTLPCGVVRPLTEVEMDHYREPFLNPVDREPLWRFPNELPIAGEPANIVALVEEYMDWLHQSPVPKLLFWGTPGVLIPPAEAARLAKSLPNCKAVDIGPGLNLLQEDNPDLIGSEIARWLSTLEISG'
-OATP='-MDQNQHLNKTAEAQPSENKKTR-YCNGLKMFLAALSLSFIAKTLGAIIMKSSIIHIERRFEISSSLVGFIDGSFEIGNLLVIVFVSYFGSKLHRPKLIGIGCFIMGIGGVLTALPHFFMGYYRYSKETNINSSENSTSTLSTCLINQILSLNRASPEIVGKGCLKESGSYMWIYVFMGNMLRGIGETPIVPLGLSYIDDFAKEGHSSLYLGILNAIAMIGPIIGFTLGSLFSKMYVDIGYVDLSTIRITPTDSRWVGAWWLNFLVSGLFSIISSIPFFFLPQTPNKPQKERKA-SLSLHVLETNDEKDQTANLTN--QGKNITK-NVTG-FFQSFKSILTNPLYVMFVLLTLLQVSSYIGAFTYVFKYVEQQYGQPSSKANILLGVITIPIFASGMFLGGYIIKKFKLNTVGIAKFSCFTAVMSLSFYLLYFFILCENKSVAGLTMTYDGNNPVTSHRDV-PLSYCNSDCNCDESQWEPVCGNNGITYISPCLAGCKSSSGNKKP---IVFYNCSCLEVTGLQNRNYSAHLGECPRDDACTRKFYFFVAIQVLNLFFSALGGTSHVMLIVKIVQPELKSLALGFHSMVIRALGGILAPIYFGALIDTTCIKWSTNNCGTRGSCRTYNSTSFSRVYLGLSSMLRVSSLVLYIILIYAMKKKYQEKDINASENG-SVMDEANLESLN-KNKHFVPS--AGADSETHC----------'
-Estrogen='SNAKRSKKNSLALSLTADQMVSALLDAEPPILYSEYDPTRPFSEASMMGLLTNLADRELVHMINWAKRVPGFVDLTRHDQVHLLECAWLEILMIGLVWRSMEHPGKLLFAPNLLLDRNQGKCVEGMVEIFDMLLATSSRFRMMNLQGEEFVCLKSIILLNSGVYTFLSSTLKSLEEKDHIHRVLDKITDTLIHLMAKAGLTLQQQHQRLAQLLLILSHIRHMSNKGMEHLYSMKCKNVVPSYDLLLEMLDAHRLHAPT'
-directory='HPCC_Run_Oct_23'
-sequence=HaloTag.replace('-','')
-#Blastp_out_name = BlastP(directory,sequence,2000,0.3)
-#Blastp_out_name = f"BlastP_Results.fasta"
-#CDHit_out_name = CDHit(directory,Blastp_out_name)
-#CDHit_out_name="CD-Hit.fasta"
-#MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
-#MAFFT_out_name="Mafft_Alignment.fasta"
-#Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
-#Post_MAFFT_name = 'Post_MAFFT_Cleaned.fasta'
-#IQTree_Phylo(directory, Post_MAFFT_name)
-#print("\n\nPhylogeny Finished\n\n")
-#IQTree_ASR(directory, Post_MAFFT_name)
-#print("\n\nASR Finished\n\n")
-#Binary_Gap_Analysis(directory, Post_MAFFT_name)
-#print("\n\nGaps Evaluated\n\n")
-Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
-Satefile_Dict = Statefile_to_Dict(directory) #Returns a dictionary out of *.state file
-Make_Uncertianty_Libraries(directory,Satefile_Dict,Good_Ancestor_Nodes)
+def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
+    nodes_data={}
+    for node,cons_list in ASR_Statefile_Dict.items(): #node is name, cons_list is list of (list of AA confidence values) for each position
+        node_confidences=[]
+        for i,pos in enumerate(cons_list): #pos is AA distribution the position i of ancestor at node node
+            if (Binary_Statefile_Dict[node][i][0])>0.5:  #If this position at this node has a greater than 50% chance of being a gap
+                node_confidences.append(Binary_Statefile_Dict[node][i][0]) #append the confidnce that there is a gap.
+            else: #if there's an amino acid
+                node_confidences.append(max(pos)) #append the confidnce of that amino acid.
+        #confidences is now a list of the confidence of the most likely state for each position at the node.
+        nodes_data[node]=((sum(node_confidences)/len(node_confidences)), (len([i for i in node_confidences if i < 0.85]))) #Each node has a tuple which is the average confidence and the number of positions where confidence is below 85%
+    with open(f"{dirname}/IQTree_ASR/Ancestral_Sequence_Confidences.txt","w+") as fout:
+        fout.write(f"For the ASR in {dirname} overall:\n    {len(ASR_Statefile_Dict)} nodes have an average confidence of {round((sum([n[0] for n in nodes_data.values()])/len(nodes_data)*100),2)}% \n    These sequences have an average of {round(sum([n[1] for n in nodes_data.values()]) / len(nodes_data),1)} positions below 85% confidence out of {len(node_confidences)} total positions.\n    The topology of these nodes can be found at {dirname}/IQTree_Phylo/Phylo.contree.\n\n")
+        for node,data in nodes_data.items():
+            node_space=(9-len(node))*' '
+            pos_space=(3-len(str(data[1])))*' '
+            if round(data[0],3)!=1:
+                con_space=' '
+            else:
+                con_space=''
+            fout.write(f"{node}{node_space} has an average confidence of {round((data[0]*100),1)}%{con_space} and {data[1]}{pos_space} positions with confidence below 85%.\n")
 
-os.system('afplay /System/Library/Sounds/Glass.aiff')
+sequence="MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
+directory='test'
+Blastp_out_name = BlastP(directory,sequence)
+CDHit_out_name = CDHit(directory,Blastp_out_name)
+MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
+Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
+IQTree_Phylo(directory, Post_MAFFT_name)
+ASR_Statefile_Dict = IQTree_ASR(directory, Post_MAFFT_name)
+Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Post_MAFFT_name)
+Post_MAFFT_name='Post_MAFFT_Cleaned.fasta'
+Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
+Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
+Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
+#os.system('afplay /System/Library/Sounds/Glass.aiff')
