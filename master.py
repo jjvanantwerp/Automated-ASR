@@ -32,6 +32,21 @@ import xml.etree.ElementTree as ET
 import os
 from string import ascii_letters
 
+sequence="MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
+directory='test'
+Blastp_out_name = BlastP(directory,sequence)
+CDHit_out_name = CDHit(directory,Blastp_out_name)
+MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
+Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
+IQTree_Phylo(directory, Post_MAFFT_name)
+ASR_Statefile_Dict = IQTree_ASR(directory, Post_MAFFT_name)
+Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Post_MAFFT_name)
+Post_MAFFT_name='Post_MAFFT_Cleaned.fasta'
+Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
+Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
+Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
+
+
 # This dictionary provides the amino acid encoded for by every codon
 Codon_to_AA = {
     'ata':'I', 'atc':'I', 'att':'I', 'atg':'M',
@@ -730,17 +745,4 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
                 con_space=''
             fout.write(f"{node}{node_space} has an average confidence of {round((data[0]*100),1)}%{con_space} and {data[1]}{pos_space} positions with confidence below 85%.\n")
 
-sequence="MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
-directory='test'
-Blastp_out_name = BlastP(directory,sequence)
-CDHit_out_name = CDHit(directory,Blastp_out_name)
-MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
-Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
-IQTree_Phylo(directory, Post_MAFFT_name)
-ASR_Statefile_Dict = IQTree_ASR(directory, Post_MAFFT_name)
-Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Post_MAFFT_name)
-Post_MAFFT_name='Post_MAFFT_Cleaned.fasta'
-Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
-Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
-Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
 #os.system('afplay /System/Library/Sounds/Glass.aiff')
