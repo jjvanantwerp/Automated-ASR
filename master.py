@@ -7,45 +7,31 @@
 '''
 The program will make the following directory structure:
     ROOT/
-    |--master.py 
-    |--AutoASR/
-    | |--HexKeytoNames.csv
-    | |--CD-Hit_Inital_Sequences.fasta.clstr
-    | |--*.fasta
-    | |--Sequence_Supplement/
-    | | |--*_HexKeytoNames.csv
-    | | |--*_BlastP_Results.fasta
-    | |--IQTree_Phylo/
-    | | |--Phylo.*
-    | |--IQTree_ASR/
-    | | |--ASR.*
-    | | |--Confidences.txt
-    | |--IQTree_Binary/
-    | | |--Binary_Alignment.fasta
-    | | |--Binary.*
-    | |--Ancestral_DNA_X%_Cutoff/
-    | | |--Node*.txt
+    |--master.py                                    This script
+    |--AutoASR/                                     The directory name provided (be sure to not overwrite old work)
+    | |--HitInfo.csv                                Data about the BlastP hits - ID and notes
+    | |--CD-Hit_Inital_Sequences.fasta.clstr        Residual from CD-Hit
+    | |--*.fasta                                    A number of fasta files - Post_MAFFT_Cleaned.fasta is the final set of sequences going into the ASR, and the ancestors are also put as fastas in this directory
+    | |--Sequence_Supplement/                       Files from adding additional sequence data to poorly supported regions of the tree. Not always used
+    | | |--*_HexKeytoNames.csv                      Same as HitInfo.csv, but for each suppliment.
+    | | |--*_BlastP_Results.fasta                   Each top 50 hits from sequences that are supplimented
+    | |--IQTree_Phylo/                              Directory for IQTree files from the phylogoney
+    | | |--Phylo.*                                  All IQTree files
+    | | |--Supports.*                               Data about the confidence of tree topology
+    | |--IQTree_ASR/                                Directory for IQTree files from ASR
+    | | |--ASR.*                                    All IQTree files
+    | | |--Confidences.*                            Data about the confidence of ASR prediction
+    | |--IQTree_Binary/                             Directory for IQTree files from gap analysis
+    | | |--Binary_Alignment.fasta                   A binary alinment of modern sequences - gap or none
+    | | |--Binary.*                                 All IQTree files
+    | |--Ancestral_DNA_X%_Cutoff/                   Directory for DNA data of each ancestory, with degenerate codons coding for all AAs with more than a 1/8 likelihood 
+    | | |--Node*.txt                                DNA for Node*
     '''
 
 from Bio.Blast import NCBIWWW
 import xml.etree.ElementTree as ET
 import os
 from string import ascii_letters
-
-sequence="MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTFSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
-directory='test'
-Blastp_out_name = BlastP(directory,sequence)
-CDHit_out_name = CDHit(directory,Blastp_out_name)
-MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
-Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
-IQTree_Phylo(directory, Post_MAFFT_name)
-ASR_Statefile_Dict = IQTree_ASR(directory, Post_MAFFT_name)
-Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Post_MAFFT_name)
-Post_MAFFT_name='Post_MAFFT_Cleaned.fasta'
-Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
-Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory) #Returns a list of nodes
-Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
-
 
 # This dictionary provides the amino acid encoded for by every codon
 Codon_to_AA = {
@@ -210,62 +196,53 @@ def NCBI_to_XML(dirname,sequence,hits=1000,expect_value=0.30): #Interact with Bl
     with open(f"./{dirname}/BlastP_XML","w+") as fout:
         fout.write(blast_result_handle.read())
     blastp_xml = ET.parse(f"./{dirname}/BlastP_XML")
-    os.remove(f"./{dirname}/BlastP_XML")
     return(blastp_xml)
 
 def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_hex=None): #Parse the BlastP XML - record Hex keys and Fasta
-    Hex_Fasta_Dict={}
+    Fasta_Dict={}
     if sequence_hex is None: #If no sequence_hex is identified (Meaning this is the search with the user sequence)
-        with open(f"./{dirname}/HexKeytoNames.csv","w+") as fout:
-            hexcount=0
-            fout.write(f"Hexadecimal Name,BlastP Name\n")
+        with open(f"./{dirname}/HitInfo.csv","w+") as fout:
+            fout.write(f"Hit ID,Hit Description,Hit Sequence\n")
             #Parsing the XML object, looking for hits
             for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
-                name = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                hitid = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                hitdef=(hit.find('Hit_def')).text
+                hitaccession=(hit.find('Hit_accession')).text.replace(".","_")
                 seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
                 #If the sequence doesn't have unknowns amino acids (annoying) then record it.
                 #The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
                 #if (("X" not in seq) and (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
                 if ("X" not in seq):
-                    hexcount+=1
-                    hexkey='Seq_'
-                    if 'predicted' in name.lower() or 'hypothetical' in name.lower():
-                        hexkey += 'P'
-                    hexkey += str(hex(hexcount).lstrip('0x'))
-                    fout.write(f"{hexkey},{name}\n")
-                    Hex_Fasta_Dict[hexkey]=seq
+                    fout.write(f"{hitid},{hitdef},{seq}\n")
+                    Fasta_Dict[hitaccession]=seq
         with open(f"./{dirname}/BlastP_Results.fasta","w+") as blastp_file:
             blastp_file.write(f">User_Sequence\n{sequence}\n")
-            for Hex,Sequence in Hex_Fasta_Dict.items():
+            for key,Sequence in Fasta_Dict.items():
                 #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
-                blastp_file.write(f">{Hex}\n")
+                blastp_file.write(f">{key}\n")
                 blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
         Remove_Duplicate_Sequences_FASTA(dirname,"BlastP_Results.fasta") #Modify the BlastP return to remove duplicate sequences.
     elif isinstance(sequence_hex,str): #If a sequence_hex has been provided, this means we're doing Supplement searches so our output directory structure should be different.
-        with open(f"./{dirname}/{sequence_hex}_HexKeytoNames.csv","w+") as fout:
-            hexcount=0
-            fout.write(f"Hexadecimal Name,BlastP Name\n")
+        with open(f"./{dirname}/{sequence_hex}_Suppliment.csv","w+") as fout:
+            fout.write(f"Hit ID,Hit Description,Hit Sequence\n")
             #Parsing the XML object, looking for hits
             for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
-                name = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                hitid = (hit.find('Hit_id')).text #I've tried to also add the Hit_accession, but I can't access that form the XML for some reason
+                hitdef=(hit.find('Hit_def')).text
+                hitaccession=(hit.find('Hit_accession')).text.replace(".","_")
                 seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
                 #If the sequence doesn't have unknowns amino acids (annoying) then record it.
                 #The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
                 #if (("X" not in seq) and (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
                 if ("X" not in seq):
-                    hexcount+=1
-                    hexkey=sequence_hex+'.' #All of the Supplemented sequences will have the sequence whose search pulled them up as a prefix on their hex value (Seq_62e.1a)
-                    if 'predicted' in name.lower() or 'hypothetical' in name.lower():
-                        hexkey += 'P'
-                    hexkey += str(hex(hexcount).lstrip('0x'))
-                    fout.write(f"{hexkey},{name}\n")
-                    Hex_Fasta_Dict[hexkey]=seq
+                    fout.write(f"{hitid},{hitdef},{seq}\n")
+                    Fasta_Dict[hitaccession]=seq
         with open(f"./{dirname}/{sequence_hex}_BlastP_Results.fasta","w+") as blastp_file:
             blastp_file.write(f">{sequence_hex}\n{sequence}\n")
-            for Hex,Sequence in Hex_Fasta_Dict.items():
+            for key,Sequence in Fasta_Dict.items():
                 #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
-                blastp_file.write(f">{Hex}\n")
-                blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
+                blastp_file.write(f">{key}\n")
+                blastp_file.write(f"{Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps
     else:
         print("sequence_hex was not a string type")
         raise ValueError ("sequence_hex was not a string type")
@@ -302,7 +279,7 @@ def BlastP(dirname,sequence,hits=2000,expect_value=0.2,sequence_hex=None): #This
         raise ValueError("Invalid sequence submitted for BlastP search")
     return("BlastP_Results.fasta")
 
-def CDHit(dirname,finname,identity=0.95): #Run CD-Hit, and Supplement low-coverage regions of the tree
+def CDHit(dirname,finname,identity=0.97): #Run CD-Hit, and Supplement low-coverage regions of the tree
     #Determine the right n for the identity
     n=CDHit_Cutoff(identity)
     Sequences_List_for_Remove=[]
@@ -342,12 +319,12 @@ def Pop_Dissimilar_Sequences_FASTA(dirname,fpath): #This function return a dicti
     Sequences_List_for_Remove=[]
     #This block will run CD-Hit to remove all sequences below 50% similarity. This removes sequences that aren't similar enough to what we want.
     try:
-        os.system(f'cd-hit -i {dirname}/{fpath} -o {dirname}/temp1_{fpath} -c 0.5 -n {CDHit_Cutoff(0.5)}') 
+        os.system(f'cd-hit -i {dirname}/{fpath} -o {dirname}/{fpath[:-6]}_temp.fasta -c 0.5 -n {CDHit_Cutoff(0.5)}') 
     except:
         raise RuntimeError("There was an error running CD-Hit.")
         print("There was an error running CD-Hit.")
     #Now we look at the output from that CD-Hit and remove sequences from single-sequence clusters; that is, sequences which have less than 50% similarity with anything else in the dataset
-    with open(f"{dirname}/temp1_{fpath}.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
+    with open(f"{dirname}/{fpath[:-6]}_temp.fasta.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
         clusters=(fin.read()).split('>Cluster ')
         for cluster in clusters: #For each cluster
             seqs=cluster.split('>') #Split off the header from each sequence name
@@ -356,8 +333,8 @@ def Pop_Dissimilar_Sequences_FASTA(dirname,fpath): #This function return a dicti
     fasta_dict=fasta2dict(f"{dirname}/{fpath}") #read in all the seuqences
     for seq in Sequences_List_for_Remove: #Remove those that don't have high enough similarity
         fasta_dict.pop(seq)
-    os.remove(f"{dirname}/temp1_{fpath}")
-    os.remove(f"{dirname}/temp1_{fpath}.clstr")
+    os.remove(f"{dirname}/{fpath[:-6]}_temp.fasta")
+    os.remove(f"{dirname}/{fpath[:-6]}_temp.fasta.clstr")
     return(fasta_dict)
 
 def Supplement_Sequences(dirname,finname): #Find areas of poor coverage on the current tree and get additional BlastP search results.
@@ -520,7 +497,7 @@ def IQTree_Phylo(dirname,finname): #Construct a phylogenetic tree, and determine
         os.mkdir(f"{dirname}/IQTree_Phylo")
     try:
         #IQTree section
-        os.system(f'iqtree -s {dirname}/{finname} -pre {dirname}/IQTree_Phylo/Phylo -alrt 20000 -bb 20000 -nt AUTO')
+        os.system(f'iqtree2 -s {dirname}/{finname} -pre {dirname}/IQTree_Phylo/Phylo -alrt 20000 -bb 20000 -nt AUTO')
     except:
         raise RuntimeError("There was an error building the phylogeny in IQTree.")
         print("There was an error building the phylogeny in IQTree.")
@@ -545,7 +522,7 @@ def IQTree_ASR(dirname,finname): #Using the tree/model from the phylogney, do th
     try:
         #IQTree section
         #Ask what model is best for ASR, use that one here.
-        os.system(f'iqtree -s {dirname}/{finname} -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_ASR/ASR -asr -m {model} -redo -nt AUTO')
+        os.system(f'iqtree2 -s {dirname}/{finname} -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_ASR/ASR -asr -m {model} -redo -nt AUTO')
     except:
         raise RuntimeError("There was an error conducting ASR in IQTree.")
         print("There was an error conducting ASR in IQTree.")
@@ -553,6 +530,7 @@ def IQTree_ASR(dirname,finname): #Using the tree/model from the phylogney, do th
     return(ASR_Statefile_Dict)
 
 def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high enough confidence to resurect ancestors from them.
+    Supports={}
     UFB_Supports=[]
     SHALRT_Supports=[]
     #This will evaluate the tree, which is in Newick format, and select nodes of high enough confidence to reconstruct an ancestral library.
@@ -567,9 +545,12 @@ def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high en
     ASRnodes.pop(0) #the first split is not actually a node.
     Phylonodes.pop(0)#the first split is not actually a node.
     for i in range(len(ASRnodes)-1): #We exclude the last node, because that's the root, which will mess up the below lines.
-        UFB_Supports.append(float(Phylonodes[i][0].split('/')[1]))
-        SHALRT_Supports.append(float(Phylonodes[i][0].split('/')[0]))
-        if (float(Phylonodes[i][0].split('/')[0]) > 80) and (float(Phylonodes[i][0].split('/')[1]) > 95): #If the SH-aLRT >80% and the ultrafast bootstraping is >95%
+        UFB_i=float(Phylonodes[i][0].split('/')[1])
+        SHALRT_i=float(Phylonodes[i][0].split('/')[0])
+        Supports[ASRnodes[i][0]]=((UFB_i,SHALRT_i))
+        UFB_Supports.append(UFB_i)
+        SHALRT_Supports.append(SHALRT_i)
+        if (SHALRT_i > 80) and (UFB_i > 95): #If the SH-aLRT >80% and the ultrafast bootstraping is >95%
             confident_nodes.append(ASRnodes[i][0]) #Record the name of the high-confidence nodes.
     SHALRT_mean = sum(SHALRT_Supports)/len(SHALRT_Supports)
     UFB_mean = sum(UFB_Supports)/len(UFB_Supports)
@@ -580,6 +561,10 @@ def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high en
         fout.write(f"The phylogenetic tree has a mean SH-aLRT support of {round(SHALRT_mean)}%. For this method, 80% is considered the threshold of quality.\n")
         fout.write(f"{len([n for n in SHALRT_Supports if n > 80])} out of {len(SHALRT_Supports)} nodes have a SH-aLRT support above 80%.\n")
         fout.write(f"The standard deviation of SH-aLRT support is {round(((1/len(SHALRT_Supports))*sum([(x-SHALRT_mean)**2 for x in SHALRT_Supports]))**0.50,1)}%.\n")
+    with open(f"{dirname}/IQTree_Phylo/Supports.csv",'w+') as fout:
+        fout.write("Node,Ultra-Fast Bootstrap, SH-aLRT\n")
+        for i in range(len(ASRnodes)-1):
+            fout.write(f"{ASRnodes[i][0]},{Supports[ASRnodes[i][0]][0]},{Supports[ASRnodes[i][0]][1]}\n")
     return confident_nodes #return the list of node names whose value is above the cutoff.
     
 def Statefile_to_Dict(dirname,fname): #Parse the statefile into a dictionary and record the confidence values.
@@ -618,7 +603,7 @@ def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where ga
         #Note that a 0 is a gap and a 1 is an AA 
     dict2fasta(binary_dict,f"{dirname}/IQTree_Binary/Binary_Alignment.fasta") #Write to file for IQTree
     try:
-        os.system(f'iqtree -s {dirname}/IQTree_Binary/Binary_Alignment.fasta -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_Binary/Binary -blfix -asr -m GTR2+FO -redo -nt AUTO')
+        os.system(f'iqtree2 -s {dirname}/IQTree_Binary/Binary_Alignment.fasta -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_Binary/Binary -blfix -asr -m GTR2+FO -redo -nt AUTO')
     except:
         print("There was an error determining gaps in the ancestral sequence")
         raise RuntimeError("There was an error determining gaps in the ancestral sequence")
@@ -645,6 +630,10 @@ def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where ga
         Consensus_Ancestors_with_Gaps[node]=consensus_seq
     Clean_all_gaps(Consensus_Ancestors_with_Gaps)
     dict2fasta(Consensus_Ancestors_with_Gaps,f"{dirname}/Consensus_Ancestors_with_Gaps.fasta")
+    Consensus_Ancestors_without_Gaps={}
+    for key,item in Consensus_Ancestors_with_Gaps.items():
+        Consensus_Ancestors_without_Gaps[key]=item.replace("-","")
+    dict2fasta(Consensus_Ancestors_without_Gaps,f"{dirname}/Consensus_Ancestors_without_Gaps.fasta")
     return(Binary_Statefile_Dict)
 
 def Degenerate_Nucleotide_Codon(AA_List, source='EColi'):  #This function takes a list of AAs for ONE POSITION and makes a degenerate codon for them.
@@ -734,15 +723,31 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
                 node_confidences.append(max(pos)) #append the confidnce of that amino acid.
         #confidences is now a list of the confidence of the most likely state for each position at the node.
         nodes_data[node]=((sum(node_confidences)/len(node_confidences)), (len([i for i in node_confidences if i < 0.85]))) #Each node has a tuple which is the average confidence and the number of positions where confidence is below 85%
-    with open(f"{dirname}/IQTree_ASR/Ancestral_Sequence_Confidences.txt","w+") as fout:
-        fout.write(f"For the ASR in {dirname} overall:\n    {len(ASR_Statefile_Dict)} nodes have an average confidence of {round((sum([n[0] for n in nodes_data.values()])/len(nodes_data)*100),2)}% \n    These sequences have an average of {round(sum([n[1] for n in nodes_data.values()]) / len(nodes_data),1)} positions below 85% confidence out of {len(node_confidences)} total positions.\n    The topology of these nodes can be found at {dirname}/IQTree_Phylo/Phylo.contree.\n\n")
+    with open(f"{dirname}/IQTree_ASR/Ancestral_Sequence_Confidences.csv","w+") as fout:
+        fout.write("Node,Average Confidence,Positions below 85 percent confidence\n")
         for node,data in nodes_data.items():
-            node_space=(9-len(node))*' '
-            pos_space=(3-len(str(data[1])))*' '
-            if round(data[0],3)!=1:
-                con_space=' '
-            else:
-                con_space=''
-            fout.write(f"{node}{node_space} has an average confidence of {round((data[0]*100),1)}%{con_space} and {data[1]}{pos_space} positions with confidence below 85%.\n")
+            fout.write(f"{node},{round((data[0]*100),3)},{data[1]}\n")
+    with open(f"{dirname}/IQTree_ASR/Ancestral_Sequence_Confidences.txt","w+") as fout:
+        fout.write(f"For the ASR in {dirname} overall:\n\
+            {len(ASR_Statefile_Dict)} nodes have an average confidence of {round((sum([n[0] for n in nodes_data.values()])/len(nodes_data)*100),2)}% \n\
+            These sequences have an average of {round(sum([n[1] for n in nodes_data.values()]) / len(nodes_data),1)} positions below 85% confidence out of {len(node_confidences)} total positions.\n\
+            The topology of these nodes can be found at {dirname}/IQTree_Phylo/Phylo.contree.\n")
+
+
+sequence="" #Paste in the sequence of what you want to analyze
+directory='' #Change this to the name of a directory where you want all your resutls output.
+
+#Blastp_out_name = BlastP(directory,sequence)
+#CDHit_out_name = CDHit(directory,Blastp_out_name)
+#MAFFT_out_name = MAFFT(directory,CDHit_out_name,sequence)
+#Post_MAFFT_name = Post_MAFFT_processing(directory,MAFFT_out_name)
+#IQTree_Phylo(directory, Post_MAFFT_name)
+#ASR_Statefile_Dict = IQTree_ASR(directory, Post_MAFFT_name)
+#Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Post_MAFFT_name)
+#ASR_Statefile_Dict = Statefile_to_Dict(directory,"IQTree_ASR/ASR.state") #Returns a dictionary out of *.state file
+#Binary_Statefile_Dict = Statefile_to_Dict(directory,"IQTree_Binary/Binary.state")
+#Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
+#Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory)
+#Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
 
 #os.system('afplay /System/Library/Sounds/Glass.aiff')
