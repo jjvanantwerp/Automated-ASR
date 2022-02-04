@@ -33,6 +33,7 @@ from Bio.Blast import NCBIWWW
 import xml.etree.ElementTree as ET
 import os
 from string import ascii_letters
+import matplotlib.pyplot as plt
 
 # This dictionary provides the amino acid encoded for by every codon
 Codon_to_AA = {
@@ -244,7 +245,7 @@ def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name=None): #Parse the
                     blastp_file.write(f">{key}\n")
                     blastp_file.write(f"{F_D_Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
             Remove_Duplicate_Sequences_FASTA(dirname,f"{BlastP_Results_fname}") #Modify the BlastP return to remove duplicate sequences.
-        
+            return(BlastP_Results_fname)
         elif isinstance(sequence,dict): #If we've been given multiple sequences, we have a dict for sequence and a list of xmls for blastp_xml
             for xml in blastp_xml:
                 with open(f"./{dirname}/HitsInfo.csv","w+") as fout:
@@ -267,7 +268,7 @@ def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name=None): #Parse the
                         blastp_file.write(f">{key}\n")
                         blastp_file.write(f"{F_D_Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
                 Remove_Duplicate_Sequences_FASTA(dirname,f"BlastP_Results.fasta") #Modify the BlastP return to remove duplicate sequences.
-        return(f"BlastP_Results.fasta")
+            return(f"BlastP_Results.fasta")
     elif isinstance(sequence_name,str): #If a sequence_name has been provided, this means we're doing Supplement searches so our output directory structure should be different.
         with open(f"{dirname}/{sequence_name}_Suppliment.csv","a") as fout: #DIFFERENT FROM ABOVE
             fout.write(f"Hit ID,Hit Description,Hit Sequence\n")
@@ -360,7 +361,7 @@ def Sequence_Processing(dirname,finname,sequence):
     else:
         Hamming_Dict=Fasta_Dict_Hamming(Fasta_Dict,Fasta_Dict["User_Sequence"]) #We have now computed the hamming distance of all sequences.
     for key,item in Hamming_Dict.items():
-        if (item/len(sequence))>0.6: #If a given sequence has less than 60% similarity with the user sequence, remove it.
+        if (item/len(sequence))>Hamming_Distance: #If a given sequence has less than 60% similarity with the user sequence, remove it.
             Fasta_Dict.pop(key)
     for key,item in Fasta_Dict.items():
         Fasta_Dict.update({key:item.replace("-","")}) #We now need to remove all the gaps in all the sequences to use CD-Hit
@@ -404,27 +405,38 @@ def Remove_Duplicate_Sequences_FASTA(dirname,fpath): #This function MODIFIES a f
 def Fasta_Dict_Hamming(Fasta_Dict,sequence): #returns the Hamming distance for every sequence in an aligned fasta dictionary.
     Hamming_dict={}
     for key,value in Fasta_Dict.items():
-        Hamming_Distance=0
+        Hamming_Diff=0
         if len(value)!=len(sequence):
             print("Hamming distance should be computed with properly aligned sequences.")
             raise ValueError("Hamming distance should be computed with properly aligned sequences.")
         for i,char in enumerate(value):
             if sequence[i]!=char:
-                Hamming_Distance+=1
-        Hamming_dict[key]=Hamming_Distance
+                Hamming_Diff+=1
+        Hamming_dict[key]=Hamming_Diff
     return Hamming_dict
 
 def Supplement_Sequences(dirname,fasta_dict): #Find areas of poor coverage on the current tree and get additional BlastP search results.
     if not (os.path.isdir(f"{dirname}/Sequence_Supplement")): #Make a directory for this sequence Supplementing process
         os.mkdir(f"{dirname}/Sequence_Supplement")
     #Now we can begin to identify sequences which are similar enough to the rest of the dataset to be retained, but dissimilar enough that they would benefit from supplimenting.
-    identity=0.7
-    sequences_list_for_search=['']*52
     dict2fasta(fasta_dict,f"{dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta") #Be sure there are no gaps in this dictionary, as CD-Hit will reject those.
-    while(len(sequences_list_for_search)>50) and (identity>0.55): #This ensures we don't have too many sequences that we try to Supplement
+    sequences_list_for_search=[]   
+    try:
+        os.system(f'cd-hit -i {dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta -o {dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta -c {Suppliment_Cutoff} -n {CDHit_Cutoff(Suppliment_Cutoff)}') #Run CD-Hit with a 60% cutoff to identify 'loner' sequences
+    except:
+        raise RuntimeError("There was an error running CD-Hit.")
+    with open(f"{dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
+        clusters=(fin.read()).split('>Cluster ')
+    for cluster in clusters: #For each cluster
+        seqs=cluster.split('>') #Split off the header from each sequence name
+        if len(seqs)==2: #If there is only one sequence in the cluster
+            sequences_list_for_search.append((seqs[1])[:-6]) #Seperate and record the name.
+    #This function will dynamically reduce the number of sequences to be supplimented, but it's turned off for experimentation.
+    '''sequences_list_for_search=['']*52
+    while(len(sequences_list_for_search)>50) and (Suppliment_Cutoff>0.55): #This ensures we don't have too many sequences that we try to Supplement
         sequences_list_for_search=[]   
         try:
-            os.system(f'cd-hit -i {dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta -o {dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta -c {identity} -n {CDHit_Cutoff(identity)}') #Run CD-Hit with a 60% cutoff to identify 'loner' sequences
+            os.system(f'cd-hit -i {dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta -o {dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta -c {Suppliment_Cutoff} -n {CDHit_Cutoff(Supplement_Cutoff)}') #Run CD-Hit with a 60% cutoff to identify 'loner' sequences
         except:
             raise RuntimeError("There was an error running CD-Hit.")
         with open(f"{dirname}/Sequence_Supplement/SingleClusters_Supplemented.fasta.clstr") as fin: #Looking at the CD-Hit clstr file (which holds cluster information)
@@ -433,7 +445,7 @@ def Supplement_Sequences(dirname,fasta_dict): #Find areas of poor coverage on th
             seqs=cluster.split('>') #Split off the header from each sequence name
             if len(seqs)==2: #If there is only one sequence in the cluster
                 sequences_list_for_search.append((seqs[1])[:-6]) #Seperate and record the name.
-        identity  -= 0.02
+        Suppliment_Cutoff-= 0.02'''
     #Now we can submit a BlastP search for all of the sequences that need to be supplimented, and write all sequences together as one file.
     files_list=[f"{dirname}/Sequence_Supplement/Sequences_to_be_Supplimented.fasta"]
     print(f"Supplementing {len(sequences_list_for_search)} sequences with poor neighboorhood coverage.")
@@ -531,7 +543,7 @@ def Clean_all_gaps (fasta_dict):
     #Remove all positions of all gaps from all sequences in the alignment
     for key,sequence in fasta_dict.items(): #Remove all the gaps
         fasta_dict.update({key:''.join([ char for i,char in enumerate(sequence) if i in pos_to_leave ])})
-            
+
 def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_reduction=True): #Modifications after the alignment, mostly having to do with gaps.
     # These functions **MODIFY** the fasta_dict by doing what their names say they do.
     old_user_length=0
@@ -564,19 +576,18 @@ def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_redu
             Post_MAFFT[key]=item.replace("-","")
         Post_MAFFT_No_Gaps_Name= avoid_fname_overwrite(dirname,'Post_MAFFT_No_Gaps','.fasta')
         dict2fasta(Post_MAFFT,f"{dirname}/{Post_MAFFT_No_Gaps_Name}")
-        if len(Post_MAFFT)<=500: #If Post_MAFFT_Cleaned already has less than 500 sequenes, we're done
+        if len(Post_MAFFT)<=Final_Library_Size: #If Post_MAFFT_Cleaned already has less than 500 sequenes, we're done
             os.system(f'cp {dirname}/Post_MAFFT_Cleaned.fasta {dirname}/Final_Sequences.fasta')
-            keep_going=False
+            return("Final_Sequences.fasta")
         else:
             keep_going=True
-        Penultimate_Sequences_Name=avoid_fname_overwrite(dirname,"Penultimate_Sequences",".fasta")
         while keep_going: #Otherwise, we'll keep lowering the CD-Hit cutoff until we get below 500 sequences.
             try:
-                os.system(f'cd-hit -i {dirname}/{Post_MAFFT_No_Gaps_Name} -o {dirname}/{Penultimate_Sequences_Name} -c {round(identity,3)} -n {n}') #Run CD-Hit
+                os.system(f'cd-hit -i {dirname}/{Post_MAFFT_No_Gaps_Name} -o {dirname}/Penultimate_Sequences.fasta -c {round(identity,3)} -n {n}') #Run CD-Hit
             except:
                 print("There was an error running CD-Hit.")
                 raise RuntimeError("There was an error running CD-Hit.")
-            with open(f"{dirname}/{Penultimate_Sequences_Name}") as fin:
+            with open(f"{dirname}/Penultimate_Sequences.fasta") as fin:
                 lines=fin.readlines()
             if len(lines)<=1000:
                 keep_going=False
@@ -584,13 +595,12 @@ def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_redu
             n=CDHit_Cutoff(identity)
             if identity<0.80: #There's a minnimum similar identity we're going to keep; 80%
                 keep_going=False
-        Final_Sequences_Name=avoid_fname_overwrite(dirname,'Final_Sequences',".fasta")
         try:
-            os.system(f'mafft {dirname}/{Penultimate_Sequences_Name} > {dirname}/{Final_Sequences_Name}') #align the sequences passed into the function
+            os.system(f'mafft {dirname}/Penultimate_Sequences.fasta > {dirname}/Final_Sequences.fasta') #align the sequences passed into the function
         except:
-            raise RuntimeError("There was an error creating the sequence alignemnt.")
             print("There was an error creating the sequence alignemnt.")
-    return(Final_Sequences_Name)
+            raise RuntimeError("There was an error creating the sequence alignemnt.")
+    return("Final_Sequences.fasta")
 
 def IQTree_Phylo(dirname,finname): #Construct a phylogenetic tree, and determine a good model.
     if not os.path.isdir(f"{dirname}/IQTree_Phylo"): #Make the directory
@@ -661,10 +671,40 @@ def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high en
         fout.write(f"The phylogenetic tree has a mean SH-aLRT support of {round(SHALRT_mean)}%. For this method, 80% is considered the threshold of quality.\n")
         fout.write(f"{len([n for n in SHALRT_Supports if n > 80])} out of {len(SHALRT_Supports)} nodes have a SH-aLRT support above 80%.\n")
         fout.write(f"The standard deviation of SH-aLRT support is {round(((1/len(SHALRT_Supports))*sum([(x-SHALRT_mean)**2 for x in SHALRT_Supports]))**0.50,1)}%.\n")
+    UFB=[]
+    SHALRT=[]
     with open(f"{dirname}/IQTree_Phylo/Supports.csv",'w+') as fout:
-        fout.write("Node,Ultra-Fast Bootstrap, SH-aLRT\n")
+        fout.write("Node,Ultra-Fast Bootstrap,SH-aLRT\n")
         for i in range(len(ASRnodes)-1):
             fout.write(f"{ASRnodes[i][0]},{Supports[ASRnodes[i][0]][0]},{Supports[ASRnodes[i][0]][1]}\n")
+            UFB.append(Supports[ASRnodes[i][0]][0])
+            SHALRT.append(Supports[ASRnodes[i][0]][1])
+    try:
+        # Make the sequence prediction histogram
+        plt.rcParams["figure.figsize"] = [7.00, 5.00]
+        plt.rcParams["figure.autolayout"] = True
+        n_bins=101
+        # Plot the histogram
+        plt.hist(UFB,n_bins)
+        plt.title('Ultra-Fast Bootstrap Node Confidence Values')
+        plt.xlabel("Confidence (%)")
+        # Save the histogram
+        plt.savefig(f"{dirname}/IQTree_Phylo/UFB_Confidences.png")
+    except:
+        pass
+    try:
+        # Make the sequence prediction histogram
+        plt.rcParams["figure.figsize"] = [7.00, 5.00]
+        plt.rcParams["figure.autolayout"] = True
+        n_bins=101
+        # Plot the histogram
+        plt.hist(SHALRT,n_bins)
+        plt.title('SH-aLRT Node Confidence Values')
+        plt.xlabel("Confidence (%)")
+        # Save the histogram
+        plt.savefig(f"{dirname}/IQTree_Phylo/SHaLRT_Confidences.png")
+    except:
+        pass
     return confident_nodes #return the list of node names whose value is above the cutoff.
     
 def Statefile_to_Dict(dirname,fname): #Parse the statefile into a dictionary and record the confidence values.
@@ -838,10 +878,32 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
             {len(ASR_Statefile_Dict)} nodes have an average confidence of {round((sum([n[0] for n in nodes_data.values()])/len(nodes_data)*100),2)}% \n\
             These sequences have an average of {round(sum([n[1] for n in nodes_data.values()]) / len(nodes_data),1)} positions below 85% confidence out of {len(node_confidences)} total positions.\n\
             The topology of these nodes can be found at {dirname}/IQTree_Phylo/Phylo.contree.\n")
-
+    try:
+        # Make the sequence prediction histogram
+        plt.rcParams["figure.figsize"] = [7.00, 5.00]
+        plt.rcParams["figure.autolayout"] = True
+        n_bins=101
+        # Plot the histogram
+        data=[round((n[0]*100),3) for n in nodes_data.values()]
+        plt.hist(data,n_bins)
+        plt.title('Average Confidnece of each Ancestral Sequence')
+        plt.xlabel("Confidence (%)")
+        # Save the histogram
+        plt.savefig(f"{dirname}/IQTree_ASR/Confidences.png")
+    except:
+        pass
 
 
 directory='All_CARS' #Change this to the name of a directory where you want all your resutls output.
+try:
+    Final_Library_Size=int(sys.argv[2])
+    Suppliment_Cutoff=float(sys.argv[3])
+    Hamming_Distance=float(sys.argv[4])
+except:
+    print("User parameters were not proveded or could not be read. Proceeding with default parameters")
+    Final_Library_Size=400
+    Suppliment_Cutoff=0.7
+    Hamming_Distance=0.5
 
 if not '.' in sys.argv[1]:
     sequence = sys.argv[1].upper().replace("-",'')
