@@ -930,8 +930,6 @@ else:
 IQTree_Phylo(directory, Final_Name)
 ASR_Statefile_Dict = IQTree_ASR(directory, Final_Name)
 Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Final_Name)
-ASR_Statefile_Dict = Statefile_to_Dict(directory,"IQTree_ASR/ASR.state") #Returns a dictionary out of *.state file
-Binary_Statefile_Dict = Statefile_to_Dict(directory,"IQTree_Binary/Binary.state")
 Write_Confidences(directory,ASR_Statefile_Dict,Binary_Statefile_Dict)
 Good_Ancestor_Nodes = Select_Ancestor_Nodes(directory)
 Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,Good_Ancestor_Nodes)
