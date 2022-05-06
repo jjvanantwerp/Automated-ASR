@@ -1,7 +1,0 @@
-The phylogenetic tree has a mean ultra-fast bootstrap support of 90%. For this method, 95% is considered the threshold of quality.
-278 out of 458 nodes have an ultra-fast bootstrap support above 95%.
-The standard deviation of ultra-fast bootstrap support is 17.5%.
-
-The phylogenetic tree has a mean SH-aLRT support of 80%. For this method, 80% is considered the threshold of quality.
-306 out of 458 nodes have a SH-aLRT support above 80%.
-The standard deviation of SH-aLRT support is 25.0%.
