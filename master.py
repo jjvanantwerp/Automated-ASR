@@ -7,11 +7,11 @@
 '''
 The program will make the following directory structure:
     ROOT/
-    |--master.py                                    This script
+    |--AutoASR.py                                    This script
     |--AutoASR/                                     The directory name provided (be sure to not overwrite old work)
     | |--HitInfo.csv                                Data about the BlastP hits - ID and notes
     | |--CD-Hit_Inital_Sequences.fasta.clstr        Residual from CD-Hit
-    | |--*.fasta                                    A number of fasta files - Post_MAFFT_Cleaned.fasta is the final set of sequences going into the ASR, and the ancestors are also put as fastas in this directory
+    | |--*.fasta                                    A number of fasta files - 
     | |--Sequence_Supplement/                       Files from adding additional sequence data to poorly supported regions of the tree. Not always used
     | | |--*_HexKeytoNames.csv                      Same as HitInfo.csv, but for each suppliment.
     | | |--*_BlastP_Results.fasta                   Each top 50 hits from sequences that are supplimented
@@ -140,7 +140,7 @@ AA_Pair_lookup_EColi = {
 #An amino-acid key for IQ-Tree *.state files.
 AA_key = ['A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V']
 
-def avoid_fname_overwrite (dirname, fname,ext): #This makes a file name that avoids overwrite, and takes a seperate directory name and file name
+def avoid_fname_overwrite (dirname, fname, ext): #This makes a file name that avoids overwrite, and takes a seperate directory name and file name
     while os.path.exists(f"{dirname}/{fname}{ext}"):
         num=1
         fname=fname+"_"+str(num)
@@ -222,8 +222,7 @@ def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name=None): #Parse the
     Fasta_Dict={}
     if sequence_name is None: #If no sequence_name is identified (Meaning this is the search with the user sequence)
         if isinstance(sequence,str):
-            HitInfoName = avoid_fname_overwrite(dirname,"HitInfo",".csv")
-            with open(f"./{dirname}/{HitInfoName}","w+") as fout:
+            with open(f"./{dirname}/HitsInfo.csv","a") as fout:
                 fout.write(f"Hit ID,Hit Description,Hit Sequence\n")
                 #Parsing the XML object, looking for hits
                 for hit in blastp_xml.findall('./BlastOutput_iterations/Iteration/Iteration_hits/Hit'):
@@ -237,15 +236,14 @@ def Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name=None): #Parse the
                     if ("X" not in seq):
                         fout.write(f"{hitid},{hitdef},{seq}\n")
                         Fasta_Dict[hitaccession]=seq
-            BlastP_Results_fname = avoid_fname_overwrite(dirname,"BlastP_Results",".fasta")
-            with open(f"{dirname}/{BlastP_Results_fname}","w+") as blastp_file:    
+            with open(f"{dirname}/BlastP_Results.fasta","a") as blastp_file:    
                 blastp_file.write(f">User_Sequence\n{sequence}\n")
                 for key,F_D_Sequence in Fasta_Dict.items():
                     #if (len(Sequence)<((1+length_cutoff)*User_Sequence_Length)) and (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
                     blastp_file.write(f">{key}\n")
                     blastp_file.write(f"{F_D_Sequence.replace('-','')}\n")#We remove all gaps, because CD-Hit cannot handle gaps.
-            Remove_Duplicate_Sequences_FASTA(dirname,f"{BlastP_Results_fname}") #Modify the BlastP return to remove duplicate sequences.
-            return(BlastP_Results_fname)
+            Remove_Duplicate_Sequences_FASTA(dirname,"BlastP_Results.fasta") #Modify the BlastP return to remove duplicate sequences.
+            return("BlastP_Results.fasta")
         elif isinstance(sequence,dict): #If we've been given multiple sequences, we have a dict for sequence and a list of xmls for blastp_xml
             for xml in blastp_xml:
                 with open(f"./{dirname}/HitsInfo.csv","w+") as fout:
@@ -331,21 +329,23 @@ def BlastP(dirname,sequence,hits=2000,expect_value=0.2,sequence_name=None): #Thi
         if sequence_name is None and isinstance(sequence,str):  
             if not os.path.exists(f"{dirname}/BlastP_Results.fasta"):
                 return_string = Parse_BlastP_XML(dirname,blastp_xml,sequence)
+            return(f"BlastP_Results.fasta")
         elif sequence_name is None and isinstance(sequence,dict):  
             return_string = Parse_BlastP_XML(dirname,xmls,sequence)
             with open(f"{dirname}/{return_string}","a") as fout:
                 for key,seq in sequence.items():
                     fout.write(f'>{key}\n{seq}\n')
+            return(return_string)
         elif isinstance(sequence_name,str):
             if not os.path.exists(f"{dirname}/{sequence_name}_BlastP_Results.fasta"):
                 return_string = Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name)
+            return(f"{sequence_name}_BlastP_Results.fasta")
         else:
-            print("sequence_name was not a string type")
-            raise ValueError ("sequence_name was not a string type")
+            print("Variable sequence_name was not a string type")
+            raise ValueError ("Variable sequence_name was not a string type")
     except:
         print("There was an error recording the BlastP Results")
         raise RuntimeError("There was an error recording the BlastP Results")     
-    return(return_string)
 
 def Sequence_Processing(dirname,finname,sequence):
     Fasta_Dict={}
@@ -354,7 +354,7 @@ def Sequence_Processing(dirname,finname,sequence):
     except:
         raise RuntimeError("There was an error running MAFFT.")
     Fasta_Dict=fasta2dict(f"{dirname}/Early_Alignment_temp.fasta",{})
-    #os.remove(f"{dirname}/Early_Alignment_temp.fasta")
+    os.remove(f"{dirname}/Early_Alignment_temp.fasta")
     if isinstance(sequence,dict):
         user_seq_name=list(sequence.keys())[0]
         Hamming_Dict=Fasta_Dict_Hamming(Fasta_Dict,Fasta_Dict[user_seq_name])
@@ -376,7 +376,7 @@ def Sequence_Processing(dirname,finname,sequence):
     if isinstance(sequence,dict):
         return_stirng = Post_MAFFT_processing(dirname,Fasta_Dict_Aligned,user_seq_name) #The Raw alignment can then be processed into an alignment that's ready for IQTree
     else:
-        return_stirng = Post_MAFFT_processing(dirname,Fasta_Dict_Aligned,False)
+        return_stirng = Post_MAFFT_processing(dirname,Fasta_Dict_Aligned,False) #if only one
     return return_stirng
 
 def CDHit_Cutoff(identity):
@@ -555,7 +555,16 @@ def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_redu
             Clean_all_gaps(fasta_dict)#Clean
             User_Sequence=fasta_dict.get(multisequence)#Update
             Remove_Deletions(fasta_dict,User_Sequence)#Deletions
-            Clean_all_gaps(fasta_dict)#Clean
+            for key, seq in fasta_dict.items():#Now we realign the sequences rather than just removing all the gaps - more relaiable
+                fasta_dict.update({key:seq.replace("-",'')})
+            dict2fasta(fasta_dict,f"{dirname}/Post_Mafft_Working1.fasta")
+            try:
+                os.system(f"mafft {dirname}/Post_Mafft_Working1.fasta > {dirname}/Post_Mafft_Working2.fasta") #Alignment is needed for the Hamming Distance
+                fasta_dict={}            
+            except:
+                raise RuntimeError("There was an error running MAFFT.")
+            fasta2dict(f"{dirname}/Post_Mafft_Working2.fasta",fasta_dict)
+            os.system(f"rm {dirname}/Post_Mafft_Working1.fasta {dirname}/Post_Mafft_Working2.fasta")
             User_Sequence=fasta_dict.get(multisequence)#Update
     else:
         User_Sequence=fasta_dict.get("User_Sequence")
@@ -565,42 +574,52 @@ def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_redu
             Clean_all_gaps(fasta_dict)#Clean
             User_Sequence=fasta_dict.get("User_Sequence")#Update
             Remove_Deletions(fasta_dict,User_Sequence)#Deletions
-            Clean_all_gaps(fasta_dict)#Clean
+            for key, seq in fasta_dict.items(): #Now we realign the sequences rather than just removing all the gaps - more relaiable
+                fasta_dict.update({key:seq.replace("-",'')})
+            dict2fasta(fasta_dict,f"{dirname}/Post_Mafft_Working1.fasta")
+            try:
+                os.system(f"mafft {dirname}/Post_Mafft_Working1.fasta > {dirname}/Post_Mafft_Working2.fasta") #Alignment is needed for the Hamming Distance
+                fasta_dict={}            
+            except:
+                raise RuntimeError("There was an error running MAFFT.")
+            fasta2dict(f"{dirname}/Post_Mafft_Working2.fasta",fasta_dict)
+            os.system(f"rm {dirname}/Post_Mafft_Working1.fasta {dirname}/Post_Mafft_Working2.fasta")
             User_Sequence=fasta_dict.get("User_Sequence")#Update
-    dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_Cleaned.fasta')
-    if dynamic_sequence_reduction: #If on, this code will reduce the sequence alignment down to less than 500 sequences. It's on by default
+    dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_Cleaned_Penultimate.fasta')
+    if dynamic_sequence_reduction and len(fasta_dict)>=Final_Library_Size : #If on, this code will reduce the sequence alignment down to less than 500 sequences. It's on by default
+        keep_going=True
         identity=0.97
         n=5
-        Post_MAFFT=fasta2dict(f'{dirname}/Post_MAFFT_Cleaned.fasta')
-        for key,item in Post_MAFFT.items():
-            Post_MAFFT[key]=item.replace("-","")
-        Post_MAFFT_No_Gaps_Name= avoid_fname_overwrite(dirname,'Post_MAFFT_No_Gaps','.fasta')
-        dict2fasta(Post_MAFFT,f"{dirname}/{Post_MAFFT_No_Gaps_Name}")
-        if len(Post_MAFFT)<=Final_Library_Size: #If Post_MAFFT_Cleaned already has less than 500 sequenes, we're done
-            os.system(f'cp {dirname}/Post_MAFFT_Cleaned.fasta {dirname}/Final_Sequences.fasta')
-            return("Final_Sequences.fasta")
-        else:
-            keep_going=True
+        for key,item in fasta_dict.items():
+            fasta_dict.update({key:item.replace("-","")})
+        dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_No_Gaps.fasta')
         while keep_going: #Otherwise, we'll keep lowering the CD-Hit cutoff until we get below 500 sequences.
             try:
-                os.system(f'cd-hit -i {dirname}/{Post_MAFFT_No_Gaps_Name} -o {dirname}/Penultimate_Sequences.fasta -c {round(identity,3)} -n {n}') #Run CD-Hit
+                os.system(f"rm {dirname}/Penultimate_Sequences.fasta")
+            except:
+                continue
+            try:
+                os.system(f'cd-hit -i {dirname}/Post_MAFFT_No_Gaps.fasta -o {dirname}/Penultimate_Sequences.fasta -c {round(identity,3)} -n {CDHit_Cutoff(identity)}') #Run CD-Hit
             except:
                 print("There was an error running CD-Hit.")
                 raise RuntimeError("There was an error running CD-Hit.")
-            with open(f"{dirname}/Penultimate_Sequences.fasta") as fin:
-                lines=fin.readlines()
-            if len(lines)<=1000:
-                keep_going=False
             identity-=0.01
-            n=CDHit_Cutoff(identity)
-            if identity<0.80: #There's a minnimum similar identity we're going to keep; 80%
+            with open(f"{dirname}/Penultimate_Sequences.fasta","r") as fin:
+                lines=fin.readlines()
+            if len(lines)<=1000 or identity<0.80:
+                print(f"Number Reached. Lines={len(lines)}")
                 keep_going=False
         try:
+            os.system(f"rm {dirname}/Post_MAFFT_No_Gaps.fasta")
             os.system(f'mafft {dirname}/Penultimate_Sequences.fasta > {dirname}/Final_Sequences.fasta') #align the sequences passed into the function
         except:
             print("There was an error creating the sequence alignemnt.")
             raise RuntimeError("There was an error creating the sequence alignemnt.")
-    return("Final_Sequences.fasta")
+        return("Final_Sequences.fasta")
+    else:
+        os.system(f'cp {dirname}/Post_MAFFT_Cleaned_Penultimate.fasta {dirname}/Final_Sequences.fasta')
+        os.system(f'rm {dirname}/Post_MAFFT_Cleaned_Penultimate.fasta')
+        return("Final_Sequences.fasta")
 
 def IQTree_Phylo(dirname,finname): #Construct a phylogenetic tree, and determine a good model.
     if not os.path.isdir(f"{dirname}/IQTree_Phylo"): #Make the directory
@@ -736,18 +755,29 @@ def Statefile_to_Dict(dirname,fname): #Parse the statefile into a dictionary and
 def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where gaps in the ancestral sequences reside. Returns the Binary_Statefile_Dict
     if not os.path.isdir(f"{dirname}/IQTree_Binary"): #Make the directory
         os.mkdir(f"{dirname}/IQTree_Binary")
-    fasta_dict = fasta2dict(f"{dirname}/{finname}")
-    binary_dict={}
-    for key,seq in fasta_dict.items(): #Make a binary alignment of the input fasta
-        binary_dict[key]=(''.join(['0' if aa =='-' else '1' for aa in seq])) #This line is taken from Ben - how to give proper credit? 
-        #Note that a 0 is a gap and a 1 is an AA 
-    dict2fasta(binary_dict,f"{dirname}/IQTree_Binary/Binary_Alignment.fasta") #Write to file for IQTree
+    binary_dict = fasta2dict(f"{dirname}/{finname}")
+    #These lines of code are to fix the bizare bug that has been showoing up with the dynamic sequence reduction that I spent all of spring 2022 trying to fix.
+    #The bug is that binary_dict somehow imported all of the non-alighed sequences from post_mafft_cleaned.fasta along with the sequences from Final_Sequences.fasta, but not in a redundant way?
+    alignment_length=max([len(seq)] for seq in binary_dict.values())
+    to_pop=[]
+    for key,seq in binary_dict.items():
+        if len(seq)!=alignment_length[0]:
+            to_pop.append(key)
+    for key in to_pop:
+        binary_dict.pop(key)
+    for key,seq in binary_dict.items(): #Make a binary alignment of the input fasta
+        binary_dict.update({key:(''.join(['0' if aa == '-' else '1' for aa in seq]))}) #This line is taken from Ben - how to give proper credit? 
+        #Note that a 0 is a gap and a 1 is an AA
+    dict2fasta(binary_dict, f"{dirname}/IQTree_Binary/Binary_Alignment.fasta") #Write to file for IQTree
     try:
         os.system(f'iqtree2 -s {dirname}/IQTree_Binary/Binary_Alignment.fasta -te {dirname}/IQTree_Phylo/Phylo.treefile -pre {dirname}/IQTree_Binary/Binary -blfix -asr -m GTR2+FO -redo -nt AUTO')
     except:
         print("There was an error determining gaps in the ancestral sequence")
         raise RuntimeError("There was an error determining gaps in the ancestral sequence")
-    Binary_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_Binary/Binary.state")
+    try:    
+        Binary_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_Binary/Binary.state")
+    except FileNotFoundError:
+        print("The binary gap analysis was not successful.")
     ASR_Statefile_Dict = Statefile_to_Dict(dirname,"IQTree_ASR/ASR.state")
     Consensus_Ancestors_with_Gaps={}
     Pos_with_Gaps={} #dictionary of {NodeX:[list of gaps at NodeX]}
@@ -772,7 +802,7 @@ def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where ga
     dict2fasta(Consensus_Ancestors_with_Gaps,f"{dirname}/Consensus_Ancestors_with_Gaps.fasta")
     Consensus_Ancestors_without_Gaps={}
     for key,item in Consensus_Ancestors_with_Gaps.items():
-        Consensus_Ancestors_without_Gaps[key]=item.replace("-","")
+        Consensus_Ancestors_without_Gaps.update({key:item.replace("-","")})
     dict2fasta(Consensus_Ancestors_without_Gaps,f"{dirname}/Consensus_Ancestors_without_Gaps.fasta")
     return(Binary_Statefile_Dict)
 
@@ -893,15 +923,15 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
     except:
         pass
 
+directory='ASR' #Change this to the name of a directory where you want all your resutls output.
 
-directory='All_CARS' #Change this to the name of a directory where you want all your resutls output.
 try:
     Final_Library_Size=int(sys.argv[2])
     Suppliment_Cutoff=float(sys.argv[3])
     Hamming_Distance=float(sys.argv[4])
 except:
     print("User parameters were not proveded or could not be read. Proceeding with default parameters")
-    Final_Library_Size=400
+    Final_Library_Size=500
     Suppliment_Cutoff=0.7
     Hamming_Distance=0.5
 
@@ -920,13 +950,14 @@ else:
         for key,item in temp_User_sequences.items():
             if '.' in key:
                 key=(key.split("."))[0]
-            User_sequences[key]=item
+            User_sequences.update({key:item})
     except:
         raise ValueError("The file could not be read as a fasta file.")
     if len(User_sequences)==1:
         User_sequences=list(User_sequences.values())[0]
     Blastp_out_name = BlastP(directory,User_sequences)
     Final_Name = Sequence_Processing(directory,Blastp_out_name,User_sequences)
+
 IQTree_Phylo(directory, Final_Name)
 ASR_Statefile_Dict = IQTree_ASR(directory, Final_Name)
 Binary_Statefile_Dict = Binary_Gap_Analysis(directory, Final_Name)
