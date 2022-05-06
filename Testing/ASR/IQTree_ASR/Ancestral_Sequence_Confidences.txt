@@ -1,0 +1,4 @@
+For the ASR in ASR overall:
+            459 nodes have an average confidence of 99.11% 
+            These sequences have an average of 8.9 positions below 85% confidence out of 440 total positions.
+            The topology of these nodes can be found at ASR/IQTree_Phylo/Phylo.contree.

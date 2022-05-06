@@ -1,0 +1,770 @@
+IQ-TREE multicore version 2.1.3 COVID-edition for Linux 64-bit built Oct 13 2021
+Developed by Bui Quang Minh, James Barbetti, Nguyen Lam Tung,
+Olga Chernomor, Heiko Schmidt, Dominik Schrempf, Michael Woodhams.
+
+Host:    lac-379 (AVX2, FMA3, 125 GB RAM)
+Command: iqtree2 -s ASR/Final_Sequences.fasta -pre ASR/IQTree_Phylo/Phylo -alrt 20000 -bb 20000 -nt AUTO
+Seed:    752369 (Using SPRNG - Scalable Parallel Random Number Generator)
+Time:    Fri May  6 09:44:34 2022
+Kernel:  AVX+FMA - auto-detect threads (3 CPU cores detected)
+
+Reading alignment file ASR/Final_Sequences.fasta ... Fasta format detected
+Alignment most likely contains protein sequences
+Alignment has 461 sequences with 440 columns, 414 distinct patterns
+339 parsimony-informative, 33 singleton sites, 68 constant sites
+              Gap/Ambiguity  Composition  p-value
+   1  Alcohol        13.64%    passed     95.21%
+   2  XP_032117442   13.86%    passed     97.13%
+   3  XP_008579195   13.64%    passed     52.02%
+   4  XP_037686231   13.64%    passed     85.86%
+   5  XP_045328087   13.64%    passed     82.26%
+   6  XP_004453759   13.64%    passed     99.46%
+   7  KAF6391169     13.64%    passed     98.15%
+   8  XP_006152234   14.09%    passed     98.11%
+   9  XP_036116852   13.64%    passed     74.00%
+  10  XP_047423331   13.64%    passed     92.65%
+  11  XP_019596704   13.64%    passed     93.74%
+  12  XP_004431044   13.64%    passed     96.06%
+  13  XP_036769952   13.64%    passed     77.99%
+  14  XP_016066684   13.64%    passed     97.88%
+  15  XP_036196262   13.64%    passed     99.25%
+  16  XP_014321212   13.18%    passed     96.57%
+  17  XP_026365461   13.64%    passed     85.37%
+  18  XP_045850590   13.64%    passed     95.45%
+  19  XP_036298718   13.64%    passed     96.66%
+  20  XP_020030486   13.64%    passed     95.82%
+  21  XP_045392818   13.64%    passed     78.16%
+  22  XP_005374351   13.64%    passed     54.94%
+  23  XP_015340066   13.64%    passed     92.51%
+  24  XP_028362206   13.64%    passed     99.85%
+  25  XP_014691317   13.41%    passed     99.49%
+  26  XP_044622300   12.50%    passed     97.81%
+  27  CAD7693505     13.86%    passed     66.38%
+  28  XP_019517197   13.64%    passed     94.84%
+  29  XP_006910819   13.64%    passed     89.77%
+  30  XP_047655429   13.64%    passed     93.68%
+  31  XP_012593874   13.64%    passed     70.95%
+  32  XP_020757298   13.64%    passed     96.34%
+  33  XP_012885207   13.64%    passed     84.63%
+  34  XP_015989080   13.64%    passed     68.94%
+  35  NP_001164342   13.86%    passed     89.72%
+  36  NP_001171758   13.86%    passed     93.54%
+  37  XP_040823191   13.86%    passed     99.89%
+  38  XP_004661602   14.77%    passed     51.32%
+  39  XP_006191340   13.64%    passed     99.02%
+  40  XP_021511465   14.32%    passed     72.36%
+  41  XP_006995562   14.32%    passed     59.40%
+  42  XP_008824398   14.32%    passed     42.36%
+  43  XP_031232042   14.32%    passed     76.19%
+  44  XP_028616306   14.32%    passed     70.23%
+  45  ERE88510       14.32%    passed     59.51%
+  46  XP_038166801   14.32%    passed     97.13%
+  47  XP_040822684   13.86%    passed     82.67%
+  48  XP_019408479   13.64%    passed     98.88%
+  49  XP_030046583   13.64%    passed     99.86%
+  50  XP_030108487   11.59%    passed     81.77%
+  51  XP_039396432   13.64%    passed     99.39%
+  52  P80468         14.09%    passed     97.79%
+  53  KAG8454172     13.64%    passed     99.72%
+  54  XP_006130202   13.64%    passed     97.67%
+  55  XP_040184168   13.64%    passed     99.96%
+  56  XP_028599250   13.64%    passed     99.96%
+  57  NXE50880       15.91%    passed     96.71%
+  58  XP_041043413   14.77%    passed     92.42%
+  59  XP_015717587   15.00%    passed     99.77%
+  60  XP_012732384   14.55%    passed     99.13%
+  61  XP_033889903   14.55%    passed     99.98%
+  62  XP_020376859   14.77%    passed     98.08%
+  63  KAG7328802     14.55%    passed     99.02%
+  64  XP_006629873   14.55%    passed     99.87%
+  65  XP_030045158   14.55%    passed     98.02%
+  66  XP_041571435   14.55%    passed     96.47%
+  67  XP_043917290   14.55%    passed    100.00%
+  68  XP_028660956   14.55%    passed     98.79%
+  69  XP_023677967   14.55%    passed     99.28%
+  70  XP_019408478   15.45%    passed     99.84%
+  71  NP_001011502   14.55%    passed    100.00%
+  72  P86884         14.77%    passed     99.91%
+  73  ACN10237       14.55%    passed     99.99%
+  74  XP_038648721   15.00%    passed     99.94%
+  75  XP_037316994   14.55%    passed     99.66%
+  76  NP_001279055   14.77%    passed     99.93%
+  77  XP_018615018   14.55%    passed     99.43%
+  78  XP_014730745   14.55%    passed     99.78%
+  79  NP_001026323   15.91%    passed     98.72%
+  80  XP_033829862   14.55%    passed     99.92%
+  81  XP_025900565   15.91%    passed     99.63%
+  82  KAG8454173     14.55%    passed     98.61%
+  83  XP_041118134   15.23%    passed     99.87%
+  84  XP_034037920   14.55%    passed     99.31%
+  85  XP_042325637   15.68%    passed     99.15%
+  86  KAI1883854     14.55%    passed     99.78%
+  87  NXR07267       17.50%    passed     98.17%
+  88  XP_007245596   14.55%    passed     99.81%
+  89  XP_018421794   14.55%    passed     99.92%
+  90  XP_030224166   14.55%    passed     99.75%
+  91  XP_028815654   14.55%    passed     99.58%
+  92  XP_019739849   14.55%    passed     99.92%
+  93  KAG8593153     14.55%    passed     99.97%
+  94  XP_020864037   15.91%    passed     99.86%
+  95  XP_033890259   14.77%    passed     96.00%
+  96  XP_026213557   14.55%    passed     96.69%
+  97  XP_031424662   14.55%    passed     99.00%
+  98  XP_028314833   15.00%    passed     97.22%
+  99  XP_034969818   14.32%    passed     99.05%
+ 100  XP_010897937   14.55%    passed     99.96%
+ 101  TNM98890       14.55%    passed     97.29%
+ 102  XP_014352978   14.77%    passed     99.42%
+ 103  KAG7458968     14.55%    passed     99.75%
+ 104  XP_026852469   14.55%    passed     94.46%
+ 105  XP_010001488   15.68%    passed     99.87%
+ 106  XP_038625168   15.68%    passed     25.33%
+ 107  XP_032878630   15.00%    passed     99.98%
+ 108  XP_031424661   14.32%    passed     98.88%
+ 109  XP_006010700   14.77%    passed     88.29%
+ 110  XP_035275467   14.55%    passed     99.86%
+ 111  KAI1887307     15.91%    passed     99.86%
+ 112  XP_040607656   16.14%    passed     99.99%
+ 113  NWQ73502       17.73%    passed     99.95%
+ 114  MBN3299964     17.50%    passed     99.91%
+ 115  KTF82052       13.18%    passed     99.88%
+ 116  ACN10409       14.55%    passed    100.00%
+ 117  XP_030420286   14.55%    passed     99.05%
+ 118  NXL92627       17.73%    passed     99.85%
+ 119  XP_043917319   14.32%    passed     99.86%
+ 120  XP_006123940   14.55%    passed     99.78%
+ 121  XP_005232590   14.77%    passed     99.81%
+ 122  XP_010001473   14.77%    passed    100.00%
+ 123  XP_032844254   14.77%    passed     99.98%
+ 124  XP_030642753   14.55%    passed     99.84%
+ 125  TSO15257       16.36%    passed     99.88%
+ 126  XP_041121864   16.59%    passed     99.84%
+ 127  XP_043917317   15.00%    passed     97.83%
+ 128  XP_046876542   14.55%    passed     99.18%
+ 129  XP_027488425   14.55%    passed     99.94%
+ 130  XP_026703821   14.77%    passed    100.00%
+ 131  XP_009554709   15.00%    passed     99.64%
+ 132  XP_014796414   14.55%    passed     99.03%
+ 133  XP_037602074   14.55%    passed     98.92%
+ 134  XP_010175229   14.77%    passed     99.83%
+ 135  XP_041280401   14.77%    passed    100.00%
+ 136  XP_032825096   15.45%    passed     47.39%
+ 137  XP_008940350   14.77%    passed    100.00%
+ 138  XP_022056677   15.00%    passed     99.95%
+ 139  NP_001076093   16.14%    passed     99.98%
+ 140  XP_020775015   14.55%    passed     99.92%
+ 141  KAI1887347     15.00%    passed     99.72%
+ 142  XP_029937599   14.55%    passed     99.89%
+ 143  XP_010308181   14.55%    passed     99.62%
+ 144  XP_029453251   14.32%    passed     99.69%
+ 145  XP_006629838   15.23%    passed     93.75%
+ 146  XP_029453234   14.32%    passed     99.94%
+ 147  XP_016050434   16.14%    passed     97.67%
+ 148  KAI1887346     15.00%    passed     95.77%
+ 149  XP_036852552   16.14%    passed     99.85%
+ 150  XP_039920723   14.77%    passed     99.91%
+ 151  KFV06562       17.27%    passed     99.82%
+ 152  XP_009935281   14.77%    passed     99.79%
+ 153  XP_014375477   14.77%    passed     96.75%
+ 154  XP_016153383   14.55%    passed     99.98%
+ 155  XP_027532953   14.77%    passed    100.00%
+ 156  XP_039992446   14.55%    passed     98.31%
+ 157  XP_009864465   14.55%    passed     96.89%
+ 158  XP_034970079   14.55%    passed     88.27%
+ 159  XP_031965341   14.55%    passed     99.96%
+ 160  XP_009904379   15.23%    passed    100.00%
+ 161  XP_009687627   14.77%    passed     94.71%
+ 162  XP_035746229   15.00%    passed     99.99%
+ 163  XP_026528466   14.55%    passed     97.26%
+ 164  XP_004431047   14.77%    passed     99.13%
+ 165  XP_006152236   14.77%    passed     97.89%
+ 166  XP_033991177   14.55%    passed     98.35%
+ 167  XP_006023750   14.55%    passed     99.78%
+ 168  XP_029918160   14.55%    passed     21.39%
+ 169  XP_044181872   15.00%    passed     99.77%
+ 170  XP_036372471   14.77%    passed     99.28%
+ 171  KAG6933607     14.55%    passed     99.99%
+ 172  XP_006108484   14.77%    passed     99.18%
+ 173  XP_014730748   14.77%    passed    100.00%
+ 174  KAH0615870     14.55%    passed     92.59%
+ 175  NXN95249       15.91%    passed     99.17%
+ 176  XP_008066600   16.14%    passed     99.86%
+ 177  XP_033813151   14.32%    passed     98.74%
+ 178  XP_040822779   14.77%    passed     99.84%
+ 179  XP_015512393   15.00%    passed     94.94%
+ 180  XP_015672895   14.55%    passed     92.25%
+ 181  XP_023782791   14.77%    passed    100.00%
+ 182  XP_006123942   14.55%    passed     95.87%
+ 183  XP_003225795   14.32%    passed     83.30%
+ 184  NP_001075997   14.77%    passed     99.95%
+ 185  XP_030348507   14.77%    passed     99.92%
+ 186  MBN3299965     17.73%    passed     99.69%
+ 187  AFP52940       14.77%    passed    100.00%
+ 188  XP_028660964   15.68%    passed     81.89%
+ 189  XP_004661695   14.77%    passed     98.42%
+ 190  AFP52939       14.77%    passed    100.00%
+ 191  XP_030046585   14.55%    passed     97.26%
+ 192  XP_039920722   14.55%    passed     99.99%
+ 193  XP_029349381   14.55%    passed     97.84%
+ 194  XP_004703337   15.23%    passed     99.89%
+ 195  XP_003225794   14.55%    passed     85.34%
+ 196  XP_031550857   15.45%    passed     87.28%
+ 197  XP_042326805   14.55%    passed     93.01%
+ 198  XP_015271466   14.55%    passed     95.78%
+ 199  XP_041615681   14.77%    passed     99.63%
+ 200  XP_001099784   14.77%    passed     99.95%
+ 201  XP_008705415   14.77%    passed    100.00%
+ 202  XP_015119354   14.55%    passed     88.55%
+ 203  CAD7693172     16.36%    passed    100.00%
+ 204  XP_004263601   14.77%    passed     99.89%
+ 205  NWX01009       15.91%    passed    100.00%
+ 206  XP_031520267   14.77%    passed     99.97%
+ 207  XP_036980982   15.00%    passed     99.39%
+ 208  XP_009099537   15.00%    passed    100.00%
+ 209  XP_024430618   14.77%    passed     99.64%
+ 210  XP_043902872   14.55%    passed     73.14%
+ 211  XP_012268980   15.45%    passed     95.28%
+ 212  XP_036111334   14.77%    passed     99.28%
+ 213  KAF6385871     14.32%    passed     99.80%
+ 214  XP_029972471   15.00%    passed     99.92%
+ 215  XP_033889904   15.00%    passed     92.86%
+ 216  XP_009988781   14.77%    passed     98.31%
+ 217  XP_001166683   14.77%    passed     99.89%
+ 218  XP_040184300   14.55%    passed     99.89%
+ 219  NXQ81068       16.14%    passed    100.00%
+ 220  KAG7279189     14.55%    passed     99.98%
+ 221  XP_008589900   14.77%    passed     99.31%
+ 222  CAA33487       14.55%    passed    100.00%
+ 223  XP_033016346   14.32%    passed     99.96%
+ 224  XP_045854150   14.77%    passed     99.35%
+ 225  NXX48569       17.73%    passed     99.67%
+ 226  NXK39795       15.91%    passed     99.78%
+ 227  XP_021405966   14.77%    passed     99.99%
+ 228  XP_007436207   14.55%    passed     93.51%
+ 229  KAF7389855     15.00%    passed     97.03%
+ 230  XP_009472966   14.55%    passed     99.96%
+ 231  NWV54578       15.91%    passed     99.75%
+ 232  XP_044131814   15.00%    passed     95.51%
+ 233  NXP52720       17.73%    passed     99.97%
+ 234  NP_001095174   14.77%    passed     98.67%
+ 235  XP_010078840   14.77%    passed     99.53%
+ 236  XP_035272565   14.32%    passed     96.57%
+ 237  XP_015589544   15.00%    passed     96.48%
+ 238  XP_023782790   14.55%    passed     99.63%
+ 239  XP_032117441   14.77%    passed     99.96%
+ 240  XP_032618906   14.55%    passed     99.96%
+ 241  XP_009867485   14.77%    passed     99.73%
+ 242  XP_037992438   14.77%    passed    100.00%
+ 243  XP_021405970   15.00%    passed    100.00%
+ 244  XP_004875508   16.14%    passed     99.96%
+ 245  XP_012666016   14.77%    passed    100.00%
+ 246  NXK22214       15.91%    passed     99.68%
+ 247  XP_032256775   14.77%    passed     96.82%
+ 248  XP_019534264   15.00%    passed     98.88%
+ 249  KAF7252603     13.86%    passed     99.43%
+ 250  XP_019869997   15.00%    passed     96.64%
+ 251  XP_032915268   15.00%    passed     99.91%
+ 252  XP_008208992   15.00%    passed     98.33%
+ 253  XP_032542180   14.55%    passed     99.68%
+ 254  XP_003443446   14.55%    passed     98.69%
+ 255  XP_021248985   14.55%    passed     98.17%
+ 256  NXK22219       17.73%    passed    100.00%
+ 257  XP_040184281   14.55%    passed     93.61%
+ 258  XP_010206550   16.59%    passed     99.99%
+ 259  XP_042326803   14.32%    passed     65.79%
+ 260  CAH1795382     15.00%    passed     98.06%
+ 261  XP_041905677   14.77%    passed     99.91%
+ 262  XP_030169248   14.77%    passed     99.68%
+ 263  XP_005406334   14.77%    passed     98.63%
+ 264  XP_003515425   14.77%    passed     99.47%
+ 265  NXS84837       15.91%    passed     99.83%
+ 266  XP_042210061   14.55%    passed     99.90%
+ 267  NWU90668       15.91%    passed     99.99%
+ 268  KAF6207627     15.00%    passed     99.98%
+ 269  XP_028660963   15.68%    passed     86.92%
+ 270  XP_005188133   14.09%    passed     97.53%
+ 271  XP_039250004   15.00%    passed     97.83%
+ 272  XP_026528465   14.55%    passed     97.87%
+ 273  XP_036769953   14.77%    passed     98.63%
+ 274  XP_009944741   14.55%    passed     98.90%
+ 275  XP_006893170   15.23%    passed     99.44%
+ 276  XP_006629897   14.55%    passed     92.36%
+ 277  XP_029686301   14.55%    passed     76.50%
+ 278  NXO24347       17.50%    passed     73.33%
+ 279  XP_023677972   14.55%    passed     93.88%
+ 280  XP_011301749   14.55%    passed     98.64%
+ 281  XP_016079073   14.77%    passed     93.09%
+ 282  XP_033016364   14.32%    passed     99.94%
+ 283  NWS85279       16.36%    passed     99.92%
+ 284  XP_029798677   14.77%    passed    100.00%
+ 285  XP_021929968   15.00%    passed     99.59%
+ 286  XP_024610797   16.14%    passed     96.78%
+ 287  XP_015479644   14.55%    passed     99.86%
+ 288  XP_040274130   15.00%    passed     90.75%
+ 289  XP_017797155   15.00%    passed     96.21%
+ 290  XP_005681442   14.77%    passed     99.71%
+ 291  XP_019613234   14.77%    passed     99.22%
+ 292  XP_024068615   14.55%    passed     96.93%
+ 293  XP_042728211   14.55%    passed     98.97%
+ 294  XP_020760118   14.77%    passed     98.24%
+ 295  XP_032916976   14.55%    passed     99.45%
+ 296  XP_004643758   14.77%    passed     97.35%
+ 297  NXU64743       16.82%    passed     99.77%
+ 298  NXI93570       15.91%    passed     81.96%
+ 299  XP_036196317   14.77%    passed     99.78%
+ 300  KNC28116       14.55%    passed     94.57%
+ 301  XP_010288250   14.55%    passed     99.86%
+ 302  XP_046830988   15.00%    passed     83.00%
+ 303  XP_042664047   14.55%    passed     99.36%
+ 304  XP_047658550   14.55%    passed     97.81%
+ 305  NXB28321       17.73%    passed     99.95%
+ 306  XP_027681265   14.55%    passed    100.00%
+ 307  XP_017770026   15.00%    passed     92.65%
+ 308  NP_001083564   14.77%    passed     99.97%
+ 309  XP_044285283   14.55%    passed     94.72%
+ 310  XP_038223311   14.55%    passed     96.17%
+ 311  XP_006010701   14.77%    passed     95.61%
+ 312  XP_008186917   15.00%    passed     99.98%
+ 313  NXN95253       17.73%    passed     99.99%
+ 314  XP_034970084   14.55%    passed     99.91%
+ 315  XP_013109209   14.09%    passed     99.62%
+ 316  XP_032753151   14.55%    passed     96.77%
+ 317  XP_040274137   14.77%    passed     99.00%
+ 318  AFP52934       14.77%    passed     99.97%
+ 319  XP_005044894   14.77%    passed     99.99%
+ 320  ABB92442       17.05%    passed     99.91%
+ 321  XP_033813186   14.55%    passed     31.45%
+ 322  XP_034969815   14.32%    passed     97.53%
+ 323  XP_025005749   14.55%    passed     99.93%
+ 324  NXE98845       17.73%    passed    100.00%
+ 325  XP_007436205   14.77%    passed     96.82%
+ 326  NXX16348       16.59%    passed     99.92%
+ 327  NXN41678       15.91%    passed     97.53%
+ 328  KFQ84223       15.91%    passed     99.86%
+ 329  RMX54635       14.32%    passed     99.36%
+ 330  AFP52938       14.77%    passed     99.99%
+ 331  VVC96437       14.55%    passed     99.72%
+ 332  NXH77013       17.73%    passed     99.99%
+ 333  XP_008116102   15.68%    passed     99.86%
+ 334  NXP74752       17.73%    passed     99.99%
+ 335  XP_003395091   15.00%    passed     98.59%
+ 336  XP_032915267   14.77%    passed     99.98%
+ 337  NXG68278       17.73%    passed     99.93%
+ 338  XP_043507838   15.00%    passed     99.74%
+ 339  KAG7328776     14.55%    passed     59.93%
+ 340  XP_046876530   15.00%    passed     83.74%
+ 341  NP_001011391   14.55%    passed     99.67%
+ 342  XP_043463522   15.45%    passed     99.06%
+ 343  XP_005484681   14.77%    passed     99.99%
+ 344  XP_015271450   14.55%    passed     97.65%
+ 345  XP_014247527   14.55%    passed     99.64%
+ 346  XP_028660962   15.23%    passed     99.96%
+ 347  XP_024880869   15.00%    passed     98.72%
+ 348  XP_010584480   14.55%    passed     99.67%
+ 349  P25405         14.77%    passed     96.58%
+ 350  NXY36179       17.73%    passed     99.99%
+ 351  XP_037919135   14.77%    passed     99.00%
+ 352  XP_038034781   14.55%    passed     99.39%
+ 353  XP_003703039   15.00%    passed     99.54%
+ 354  XP_042667429   14.32%    passed     99.71%
+ 355  NXU53359       17.73%    passed     99.97%
+ 356  NWR55848       17.73%    passed     99.95%
+ 357  NWH42686       15.91%    passed     98.54%
+ 358  XP_003225784   14.55%    passed     99.97%
+ 359  XP_020671303   14.55%    passed     99.04%
+ 360  XP_030211833   14.55%    passed     98.77%
+ 361  XP_009876355   16.36%    passed     99.47%
+ 362  NXA78566       17.73%    passed    100.00%
+ 363  XP_040274131   15.23%    passed     92.94%
+ 364  NXR79219       17.73%    passed     99.99%
+ 365  XP_018615268   14.55%    passed     79.98%
+ 366  XP_022316259   15.45%    passed     99.99%
+ 367  NXU05418       17.73%    passed     99.96%
+ 368  XP_020671304   14.55%    passed     67.39%
+ 369  XP_047655418   14.77%    passed     99.64%
+ 370  XP_040274125   14.55%    passed     88.02%
+ 371  ASW35082       15.00%    passed     98.72%
+ 372  XP_034938468   14.77%    passed     99.74%
+ 373  AFP52935       14.77%    passed     99.98%
+ 374  NXS07410       17.73%    passed    100.00%
+ 375  XP_020671306   14.55%    passed     86.17%
+ 376  XP_020033361   14.77%    passed     86.91%
+ 377  KAG8593128     15.00%    passed     91.48%
+ 378  KOX67600       15.91%    passed     99.33%
+ 379  XP_011384461   15.00%    passed     99.49%
+ 380  XP_003798570   14.77%    passed     99.84%
+ 381  NXL79317       16.59%    passed     99.99%
+ 382  XP_034174531   14.55%    passed     99.70%
+ 383  XP_033813164   14.32%    passed     99.94%
+ 384  XP_013807077   14.55%    passed     99.77%
+ 385  XP_029453258   14.77%    passed     97.53%
+ 386  XP_028363551   14.77%    passed     99.87%
+ 387  NWS57048       17.73%    passed    100.00%
+ 388  XP_008277696   14.55%    passed     87.46%
+ 389  XP_033336756   15.00%    passed     99.66%
+ 390  NXD26239       17.73%    passed     99.74%
+ 391  XP_043253099   15.00%    passed     99.95%
+ 392  XP_016079075   15.00%    passed     97.88%
+ 393  NXP64251       17.73%    passed     99.99%
+ 394  NXF08300       17.50%    passed    100.00%
+ 395  XP_027709208   15.00%    passed     87.83%
+ 396  XP_032042801   14.55%    passed     98.50%
+ 397  XP_010588765   15.23%    passed     98.18%
+ 398  NXW62574       17.73%    passed     99.97%
+ 399  NXY53447       16.59%    passed    100.00%
+ 400  CAG4946354     14.55%    passed     99.57%
+ 401  NXI48231       17.95%    passed     99.99%
+ 402  XP_012276439   15.00%    passed     98.39%
+ 403  XP_003732512   14.77%    passed     99.86%
+ 404  XP_018419771   14.55%    passed     92.38%
+ 405  NXU41193       17.73%    passed    100.00%
+ 406  XP_035505469   14.09%    passed     16.71%
+ 407  XP_030758371   15.00%    passed     74.65%
+ 408  NWS97848       17.73%    passed     99.97%
+ 409  XP_030046586   14.55%    passed     99.88%
+ 410  XP_015271453   14.77%    passed     99.58%
+ 411  XP_002934814   15.23%    passed     92.49%
+ 412  XP_009687628   14.55%    passed     92.97%
+ 413  P80360         15.91%    passed     93.53%
+ 414  XP_009935280   14.55%    passed     99.85%
+ 415  XP_032117449   14.77%    passed     99.92%
+ 416  KFB47245       15.45%    passed     97.91%
+ 417  XP_003468082   14.77%    passed     99.74%
+ 418  XP_018098887   15.00%    passed     83.02%
+ 419  XP_020658588   14.32%    passed     99.73%
+ 420  XP_004453758   14.77%    passed     99.87%
+ 421  XP_047422641   14.77%    passed     99.98%
+ 422  XP_015479645   14.55%    passed     99.65%
+ 423  XP_040274138   14.77%    passed     98.60%
+ 424  XP_018419781   14.55%    passed     87.01%
+ 425  NP_001086903   15.00%    passed     97.18%
+ 426  XP_033229849   15.00%    passed     95.30%
+ 427  XP_030046584   14.55%    passed     90.75%
+ 428  XP_033488315   14.55%    passed     70.08%
+ 429  NWR93555       15.91%    passed     99.96%
+ 430  XP_040184218   14.55%    passed     93.45%
+ 431  NXK92522       17.73%    passed    100.00%
+ 432  XP_005148714   14.77%    passed     94.03%
+ 433  XP_026186901   14.55%    passed     92.19%
+ 434  NXK78663       17.73%    passed     99.94%
+ 435  XP_018419784   14.32%    passed     99.59%
+ 436  XP_036266674   15.00%    passed     98.90%
+ 437  XP_002111642   16.59%    passed     83.67%
+ 438  NXM34333       15.91%    passed     99.58%
+ 439  KAG7213024     15.00%    passed     99.42%
+ 440  XP_040903851   14.55%    passed     70.93%
+ 441  XP_028616200   14.77%    passed     94.91%
+ 442  XP_019639569   15.00%    passed     86.79%
+ 443  CAD7463195     16.36%    passed     98.09%
+ 444  XP_035017736   14.55%    passed     80.05%
+ 445  XP_018316234   15.45%    passed     89.73%
+ 446  NWY37168       17.73%    passed     99.96%
+ 447  KAI1887349     14.32%    passed     52.33%
+ 448  XP_012593872   14.77%    passed     99.94%
+ 449  XP_018782366   14.77%    passed     99.88%
+ 450  XP_008589902   15.00%    passed     99.94%
+ 451  NWI26258       15.91%    passed     99.91%
+ 452  AII22000       14.55%    passed     98.13%
+ 453  XP_013807076   14.77%    passed     95.44%
+ 454  XP_045138774   15.00%    passed     99.24%
+ 455  KAG7295911     14.55%    passed     85.97%
+ 456  XP_035898493   15.45%    passed     81.68%
+ 457  XP_011686950   15.00%    passed     99.56%
+ 458  XP_005325815   14.77%    passed     98.68%
+ 459  XP_023937708   14.55%    passed     96.01%
+ 460  NXH12310       15.91%    passed     99.99%
+ 461  XP_005278539   15.23%    passed     99.74%
+****  TOTAL          14.96%  0 sequences failed composition chi2 test (p-value<5%; df=19)
+
+
+Create initial parsimony tree by phylogenetic likelihood library (PLL)... 0.320 seconds
+Measuring multi-threading efficiency up to 3 CPU cores
+3 trees examined
+Threads: 1 / Time: 3.016 sec / Speedup: 1.000 / Efficiency: 100% / LogL: -165719
+Threads: 2 / Time: 1.588 sec / Speedup: 1.899 / Efficiency: 95% / LogL: -165719
+Threads: 3 / Time: 1.213 sec / Speedup: 2.487 / Efficiency: 83% / LogL: -165719
+BEST NUMBER OF THREADS: 3
+
+Perform fast likelihood tree search using LG+I+G model...
+Estimate model parameters (epsilon = 5.000)
+Perform nearest neighbor interchange...
+Estimate model parameters (epsilon = 1.000)
+1. Initial log-likelihood: -77267.809
+Optimal log-likelihood: -77267.764
+Proportion of invariable sites: 0.055
+Gamma shape alpha: 1.000
+Parameters optimization took 1 rounds (1.053 sec)
+Time for fast ML tree search: 8.987 seconds
+
+NOTE: ModelFinder requires 343 MB RAM!
+ModelFinder will test up to 702 protein models (sample size: 440) ...
+ No. Model         -LnL         df  AIC          AICc         BIC
+  1  LG            81585.829    919 165009.657   1855969.657  168765.403
+  2  LG+I          81003.323    920 163846.646   1858486.646  167606.479
+  3  LG+G4         77304.581    920 156449.163   1851089.163  160208.996
+  4  LG+I+G4       77267.776    921 156377.552   1854701.552  160141.471
+  5  LG+R2         78422.317    921 158686.633   1857010.633  162450.553
+  6  LG+R3         77520.636    923 156887.273   1862591.273  160659.366
+  7  LG+R4         77257.345    925 156364.691   1869464.691  160144.957
+  8  LG+R5         77135.198    927 156124.397   1876636.397  159912.837
+  9  LG+R6         77109.594    929 156077.187   1884017.187  159873.801
+ 10  LG+R7         77091.302    931 156044.604   1891428.604  159849.391
+ 11  LG+R8         77091.261    933 156048.521   1898892.521  159861.482
+ 23  LG+F+R7       77238.670    950 156377.340   1963277.340  160259.776
+ 36  WAG+R7        77490.427    931 156842.853   1892226.853  160647.641
+ 49  WAG+F+R7      77515.431    950 156930.861   1963830.861  160813.297
+ 62  JTT+R7        77056.667    931 155975.333   1891359.333  159780.121
+ 75  JTT+F+R7      77204.011    950 156308.023   1963208.023  160190.459
+ 88  Q.pfam+R7     77099.365    931 156060.730   1891444.730  159865.517
+101  Q.pfam+F+R7   77385.106    950 156670.211   1963570.211  160552.647
+114  Q.bird+R7     77879.217    931 157620.434   1893004.434  161425.221
+127  Q.bird+F+R7   78535.500    950 158971.000   1965871.000  162853.436
+140  Q.mammal+R7   77500.240    931 156862.480   1892246.480  160667.267
+153  Q.mammal+F+R7 78077.320    950 158054.641   1964954.641  161937.077
+166  Q.insect+R7   76793.040    931 155448.080   1890832.080  159252.867
+179  Q.insect+F+R7 77368.337    950 156636.674   1963536.674  160519.110
+192  Q.plant+R7    76470.685    931 154803.370   1890187.370  158608.158
+205  Q.plant+F+R7  76852.676    950 155605.352   1962505.352  159487.788
+218  Q.yeast+R7    76957.142    931 155776.284   1891160.284  159581.071
+231  Q.yeast+F+R7  77542.766    950 156985.531   1963885.531  160867.967
+244  JTTDCMut+R7   77051.329    931 155964.658   1891348.658  159769.445
+257  JTTDCMut+F+R7 77168.280    950 156236.560   1963136.560  160118.996
+270  DCMut+R7      78163.034    931 158188.068   1893572.068  161992.855
+283  DCMut+F+R7    78142.652    950 158185.303   1965085.303  162067.739
+296  VT+R7         77957.376    931 157776.752   1893160.752  161581.539
+309  VT+F+R7       78193.333    950 158286.667   1965186.667  162169.103
+322  PMB+R7        78962.772    931 159787.545   1895171.545  163592.332
+335  PMB+F+R7      79140.004    950 160180.008   1967080.008  164062.444
+348  Blosum62+R7   78981.167    931 159824.335   1895208.335  163629.122
+361  Blosum62+F+R7 79264.069    950 160428.138   1967328.138  164310.574
+374  Dayhoff+R7    78152.413    931 158166.826   1893550.826  161971.613
+387  Dayhoff+F+R7  78132.343    950 158164.686   1965064.686  162047.122
+400  mtREV+R7      80364.543    931 162591.085   1897975.085  166395.872
+413  mtREV+F+R7    78325.664    950 158551.328   1965451.328  162433.764
+426  mtART+R7      81036.659    931 163935.317   1899319.317  167740.104
+439  mtART+F+R7    79802.792    950 161505.583   1968405.583  165388.019
+452  mtZOA+R7      79029.132    931 159920.265   1895304.265  163725.052
+465  mtZOA+F+R7    78465.974    950 158831.949   1965731.949  162714.385
+478  mtMet+R7      79650.496    931 161162.993   1896546.993  164967.780
+491  mtMet+F+R7    78383.183    950 158666.366   1965566.366  162548.802
+504  mtVer+R7      80241.910    931 162345.820   1897729.820  166150.607
+517  mtVer+F+R7    78931.427    950 159762.854   1966662.854  163645.290
+530  mtInv+R7      79901.028    931 161664.056   1897048.056  165468.844
+543  mtInv+F+R7    78045.989    950 157991.978   1964891.978  161874.414
+556  mtMAM+R7      81822.194    931 165506.388   1900890.388  169311.176
+569  mtMAM+F+R7    79933.376    950 161766.752   1968666.752  165649.188
+582  HIVb+R7       78753.852    931 159369.703   1894753.703  163174.491
+595  HIVb+F+R7     78637.491    950 159174.982   1966074.982  163057.418
+608  HIVw+R7       81983.403    931 165828.807   1901212.807  169633.594
+621  HIVw+F+R7     81566.203    950 165032.406   1971932.406  168914.842
+634  FLU+R7        78734.726    931 159331.452   1894715.452  163136.239
+647  FLU+F+R7      78656.611    950 159213.223   1966113.223  163095.659
+660  rtREV+R7      78395.460    931 158652.919   1894036.919  162457.707
+673  rtREV+F+R7    78333.525    950 158567.051   1965467.051  162449.487
+686  cpREV+R7      77640.351    931 157142.702   1892526.702  160947.489
+699  cpREV+F+R7    77866.761    950 157633.522   1964533.522  161515.958
+Akaike Information Criterion:           Q.plant+R7
+Corrected Akaike Information Criterion: LG+G4
+Bayesian Information Criterion:         Q.plant+R7
+Best-fit model: Q.plant+R7 chosen according to BIC
+
+All model information printed to ASR/IQTree_Phylo/Phylo.model.gz
+CPU time for ModelFinder: 14796.227 seconds (4h:6m:36s)
+Wall-clock time for ModelFinder: 5084.012 seconds (1h:24m:44s)
+Generating 20000 samples for ultrafast bootstrap (seed: 752369)...
+
+NOTE: 250 MB RAM (0 GB) is required!
+Estimate model parameters (epsilon = 0.100)
+1. Initial log-likelihood: -76470.685
+Optimal log-likelihood: -76470.541
+Site proportion and rates:  (0.172,0.048) (0.121,0.224) (0.188,0.525) (0.227,1.004) (0.146,1.586) (0.117,2.503) (0.030,3.884)
+Parameters optimization took 1 rounds (7.198 sec)
+Computing ML distances based on estimated model parameters...
+Computing ML distances took 15.567914 sec (of wall-clock time) 44.364102 sec(of CPU time)
+Computing RapidNJ tree took 0.250112 sec (of wall-clock time) 0.285628 sec (of CPU time)
+Log-likelihood of RapidNJ tree: -77522.329
+--------------------------------------------------------------------
+|             INITIALIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Generating 98 parsimony trees... 34.260 second
+Computing log-likelihood of 98 initial trees ... 53.382 seconds
+Current best score: -76470.541
+
+Do NNI search on 20 best initial trees
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 1: -76437.864
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 2: -76373.154
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 3: -76358.882
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 8: -76342.041
+Iteration 10 / LogL: -76412.881 / Time: 0h:6m:4s
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 17: -76333.758
+Iteration 20 / LogL: -76412.549 / Time: 0h:9m:14s
+Finish initializing candidate tree set (20)
+Current best tree score: -76333.758 / CPU time: 527.108
+Number of iterations: 20
+--------------------------------------------------------------------
+|               OPTIMIZING CANDIDATE TREE SET                      |
+--------------------------------------------------------------------
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 21: -76316.999
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 23: -76302.445
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 24: -76260.069
+Iteration 30 / LogL: -76314.265 / Time: 0h:12m:44s (0h:41m:16s left)
+Iteration 40 / LogL: -76341.260 / Time: 0h:15m:1s (0h:32m:20s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 46: -76258.981
+Iteration 50 / LogL: -76375.618 / Time: 0h:17m:38s (0h:34m:33s left)
+Log-likelihood cutoff on original alignment: -76485.723
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 54: -76243.191
+Iteration 60 / LogL: -76268.448 / Time: 0h:20m:50s (0h:33m:11s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 70: -76240.462
+Iteration 70 / LogL: -76240.462 / Time: 0h:23m:22s (0h:33m:52s left)
+Iteration 80 / LogL: -76285.326 / Time: 0h:25m:46s (0h:29m:21s left)
+Iteration 90 / LogL: -76241.753 / Time: 0h:28m:1s (0h:25m:11s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 94: -76232.341
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 96: -76220.125
+Iteration 100 / LogL: -76257.020 / Time: 0h:30m:44s (0h:29m:48s left)
+Log-likelihood cutoff on original alignment: -76463.116
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.971
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 108: -76212.802
+Iteration 110 / LogL: -76234.613 / Time: 0h:33m:47s (0h:30m:22s left)
+Iteration 120 / LogL: -76217.434 / Time: 0h:36m:5s (0h:26m:41s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 129: -76204.648
+Iteration 130 / LogL: -76254.532 / Time: 0h:38m:31s (0h:29m:33s left)
+Iteration 140 / LogL: -76221.075 / Time: 0h:40m:47s (0h:26m:7s left)
+Iteration 150 / LogL: -76206.402 / Time: 0h:43m:8s (0h:22m:52s left)
+Log-likelihood cutoff on original alignment: -76450.835
+Iteration 160 / LogL: -76230.730 / Time: 0h:46m:3s (0h:19m:59s left)
+Iteration 170 / LogL: -76211.066 / Time: 0h:48m:18s (0h:16m:52s left)
+Iteration 180 / LogL: -76286.415 / Time: 0h:50m:41s (0h:13m:52s left)
+Iteration 190 / LogL: -76210.002 / Time: 0h:52m:59s (0h:10m:56s left)
+Iteration 200 / LogL: -76224.938 / Time: 0h:55m:14s (0h:8m:3s left)
+Log-likelihood cutoff on original alignment: -76450.835
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.973
+NOTE: UFBoot does not converge, continue at least 100 more iterations
+Iteration 210 / LogL: -76214.576 / Time: 0h:58m:8s (0h:25m:2s left)
+Iteration 220 / LogL: -76265.273 / Time: 1h:0m:23s (0h:22m:3s left)
+Iteration 230 / LogL: -76316.804 / Time: 1h:2m:39s (0h:19m:9s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 240: -76200.051
+Iteration 240 / LogL: -76200.051 / Time: 1h:5m:5s (0h:27m:14s left)
+Iteration 250 / LogL: -76245.641 / Time: 1h:7m:15s (0h:24m:18s left)
+Log-likelihood cutoff on original alignment: -76450.835
+Iteration 260 / LogL: -76229.743 / Time: 1h:10m:13s (0h:21m:41s left)
+Estimate model parameters (epsilon = 0.100)
+BETTER TREE FOUND at iteration 264: -76197.216
+Iteration 270 / LogL: -76207.035 / Time: 1h:12m:37s (0h:25m:22s left)
+Iteration 280 / LogL: -76201.228 / Time: 1h:14m:58s (0h:22m:34s left)
+Iteration 290 / LogL: -76260.603 / Time: 1h:17m:13s (0h:19m:46s left)
+Iteration 300 / LogL: -76199.914 / Time: 1h:19m:31s (0h:17m:1s left)
+Log-likelihood cutoff on original alignment: -76450.835
+NOTE: Bootstrap correlation coefficient of split occurrence frequencies: 0.993
+Iteration 310 / LogL: -76202.328 / Time: 1h:22m:22s (0h:23m:59s left)
+Iteration 320 / LogL: -76423.001 / Time: 1h:24m:28s (0h:21m:11s left)
+Iteration 330 / LogL: -76199.508 / Time: 1h:26m:47s (0h:18m:28s left)
+Iteration 340 / LogL: -76231.413 / Time: 1h:29m:0s (0h:15m:45s left)
+Iteration 350 / LogL: -76211.054 / Time: 1h:31m:15s (0h:13m:4s left)
+Log-likelihood cutoff on original alignment: -76450.835
+Iteration 360 / LogL: -76214.071 / Time: 1h:34m:10s (0h:10m:29s left)
+TREE SEARCH COMPLETED AFTER 365 ITERATIONS / Time: 1h:35m:19s
+
+--------------------------------------------------------------------
+|                    FINALIZING TREE SEARCH                        |
+--------------------------------------------------------------------
+Performs final model parameters optimization
+Estimate model parameters (epsilon = 0.010)
+1. Initial log-likelihood: -76197.216
+2. Current log-likelihood: -76197.193
+3. Current log-likelihood: -76197.161
+4. Current log-likelihood: -76197.130
+5. Current log-likelihood: -76197.110
+6. Current log-likelihood: -76197.079
+7. Current log-likelihood: -76197.049
+8. Current log-likelihood: -76197.032
+9. Current log-likelihood: -76197.005
+10. Current log-likelihood: -76196.991
+11. Current log-likelihood: -76196.978
+12. Current log-likelihood: -76196.964
+13. Current log-likelihood: -76196.951
+14. Current log-likelihood: -76196.937
+15. Current log-likelihood: -76196.920
+16. Current log-likelihood: -76196.906
+17. Current log-likelihood: -76196.892
+18. Current log-likelihood: -76196.878
+19. Current log-likelihood: -76196.865
+20. Current log-likelihood: -76196.848
+21. Current log-likelihood: -76196.834
+22. Current log-likelihood: -76196.820
+23. Current log-likelihood: -76196.807
+24. Current log-likelihood: -76196.794
+25. Current log-likelihood: -76196.778
+26. Current log-likelihood: -76196.764
+27. Current log-likelihood: -76196.751
+28. Current log-likelihood: -76196.737
+29. Current log-likelihood: -76196.725
+30. Current log-likelihood: -76196.713
+31. Current log-likelihood: -76196.698
+32. Current log-likelihood: -76196.686
+33. Current log-likelihood: -76196.674
+34. Current log-likelihood: -76196.662
+35. Current log-likelihood: -76196.650
+36. Current log-likelihood: -76196.638
+37. Current log-likelihood: -76196.626
+38. Current log-likelihood: -76196.615
+39. Current log-likelihood: -76196.603
+40. Current log-likelihood: -76196.592
+41. Current log-likelihood: -76196.581
+42. Current log-likelihood: -76196.570
+43. Current log-likelihood: -76196.559
+44. Current log-likelihood: -76196.548
+45. Current log-likelihood: -76196.538
+46. Current log-likelihood: -76196.527
+Optimal log-likelihood: -76196.512
+Site proportion and rates:  (0.152,0.036) (0.119,0.184) (0.158,0.450) (0.178,0.826) (0.206,1.317) (0.146,2.286) (0.041,3.659)
+Parameters optimization took 46 rounds (289.234 sec)
+BEST SCORE FOUND : -76196.512
+
+Testing tree branches by SH-like aLRT with 20000 replicates...
+Alternative NNI shows better log-likelihood -76196.470 > -76196.512
+27.383 sec.
+Creating bootstrap support values...
+Split supports printed to NEXUS file ASR/IQTree_Phylo/Phylo.splits.nex
+Total tree length: 45.063
+
+Total number of iterations: 365
+CPU time used for tree search: 16052.259 sec (4h:27m:32s)
+Wall-clock time used for tree search: 5691.796 sec (1h:34m:51s)
+Total CPU time used: 17086.931 sec (4h:44m:46s)
+Total wall-clock time used: 6077.062 sec (1h:41m:17s)
+
+Computing bootstrap consensus tree...
+Reading input file ASR/IQTree_Phylo/Phylo.splits.nex...
+461 taxa and 3974 splits.
+Consensus tree written to ASR/IQTree_Phylo/Phylo.contree
+Reading input trees file ASR/IQTree_Phylo/Phylo.contree
+Log-likelihood of consensus tree: -76190.983
+
+Analysis results written to: 
+  IQ-TREE report:                ASR/IQTree_Phylo/Phylo.iqtree
+  Maximum-likelihood tree:       ASR/IQTree_Phylo/Phylo.treefile
+  Likelihood distances:          ASR/IQTree_Phylo/Phylo.mldist
+
+Ultrafast bootstrap approximation results written to:
+  Split support values:          ASR/IQTree_Phylo/Phylo.splits.nex
+  Consensus tree:                ASR/IQTree_Phylo/Phylo.contree
+  Screen log file:               ASR/IQTree_Phylo/Phylo.log
+
+Date and Time: Fri May  6 12:50:41 2022
