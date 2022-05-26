@@ -9,5 +9,5 @@ When downloading this software to use for your own analysis, it will be nessecar
       CD-Hit: https://github.com/weizhongli/cdhit 
       MAFFT: https://mafft.cbrc.jp/alignment/software/
       IQ-TREE: http://www.iqtree.org/#download
-  The Biopython module will need to be installed.
+  The Biopython module will need to be installed. The MatPlotLib module is optional.
   If you have any questions, feel free to reach out - my email is in the header of the python file.
