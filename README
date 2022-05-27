@@ -1,6 +1,6 @@
 # Automated-ASR
 This is a python code that automates the workflow of Ancestral Sequence Reconstruction.
-It's written in Python3, and the command lines may be different depnding on the executables for IQTree, MAFFT, and CD-Hit in your system.
+It's written in Python but some lines may need to be different depnding on the executables for IQTree, MAFFT, and CD-Hit in your system.
 The current version (1.3) should also produce libraries of degenerate DNA sequences from each ancestral sequence.
 When downloading this software to use for your own analysis, it will be nessecary to do a little setup:
   Rename the directory to somehthing that is memorable and that is not already a directory in the same workspace as this software. Its current form WILL overwrite existing directories.
