@@ -9,7 +9,6 @@ import sys
 from Bio.Blast import NCBIWWW
 import xml.etree.ElementTree as ET
 import os
-import matplotlib.pyplot as plt
 
 Directory_Structure='''The program will make the following directory structure, where ROOT is the directory the script is placed in:
     ROOT/
@@ -36,7 +35,11 @@ Directory_Structure='''The program will make the following directory structure, 
     | | |--Binary.*                                     All IQTree files.
     | |--DNA_Library_12.5%_Cutoff.fasta.fasta/      Fasta of DNA for all high-confidence ancestors, with degenerate codons coding for all AAs with more than a 1/8 likelihood.
     | |--Concesus_Ancestors_with_Gaps.fasta         The set of likely ancestors, aligned and with gaps where the binary gap analysis predicts them.
-    | |--Final_Tree.treefile                        The final tree which is best for reading, as it has the most information in one place.'''
+    | |--Final_Tree.treefile                        The final tree which is best for reading, as it has the most information in one place.
+    | |--Confidence_Heatmaps/.......................The directory for IQTree files from gap analysis. Only generated after running the script again with the -mf or --makefigures option.
+    | | |--*_Confidences.pdf                            A heatmap of the confidence values for each ancestral position.
+    '''
+
 
 Help_String='''This software automates the process of ancestral sequence reconstruction. This software has one required input option and two optional input parameters.
      The first input in the name of the FASTA file containing the input sequence(s) or the input sequence itself.
@@ -45,11 +48,14 @@ Help_String='''This software automates the process of ancestral sequence reconst
      The third input is the sequence suppliment similarity cutoff. This represents the threshold below which sequences will be supplimented to fill out sequence space. It must be a number between 0.4 and 0.9. Default is 0.7.
 Options should be entered on the command line in the form
      python AutoASR.py {input.fasta} {Number of Desired Sequences} {Sequence Suppliment Cutoff}
+Once ASR has been completed, this software can be run with the --makefigures option (or -mf), and it will generate pdf figures with a confidence heatmap for each ancestral sequence.
+This option is not on by default because large ASR jobs may take up too much storage space.
 Entering just the option "help" or "h" will display this description. '''
 
 Software_Prerequistes='''This AutoASR script makes use of external software, which must be set up before it can be used. See the GitHub page for this project (github.com/jjvanantwerp/Automated-ASR) for download links. 
 This software requires IQTree 2, CD-Hit, and MAFFT to be downloaded and set up with their standard executable names added to the path. 
-It also requires the python modules BioPython (Bio) and xml to be installed. Optionally, the python module matplotlib can be installed for production of figures from the data.'''
+It also requires the python modules BioPython (Bio) and xml to be installed. Optionally, the python module matplotlib can be installed for production of figures from the data.
+To make the pdf confidence heatmaps, the python modules pandas and seaborn are also needed.'''
 
 # This dictionary provides the amino acid encoded for by every codon
 Codon_to_AA = {
@@ -345,8 +351,13 @@ def BlastP(dirname,sequence,hits=2000,expect_value=0.2,sequence_name=None): #Thi
                 return("BlastP_Results.fasta")
         elif isinstance(sequence_name,str): #A suppliment search
             if not os.path.exists(f"{dirname}/{sequence_name}_BlastP_Results.fasta"):
-                return_string = Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name)
-            return(return_string)
+                try:
+                    return_string = Parse_BlastP_XML(dirname,blastp_xml,sequence,sequence_name)
+                    return(return_string)
+                except:
+                    return(False)
+            else:
+                return(f"{sequence_name}_BlastP_Results.fasta")
         else:
             print("Variable sequence_name was not a string type")
             raise ValueError ("Variable sequence_name was not a string type")
@@ -464,8 +475,9 @@ def Supplement_Sequences(dirname,fasta_dict): #Find areas of poor coverage on th
     print(f"Supplementing {len(sequences_list_for_search)} sequences with poor neighboorhood coverage.")
     for sequence_name in sequences_list_for_search:
         if not os.path.exists(f"{dirname}/Sequence_Supplement/{sequence_name}_BlastP_Results.fasta"):
-            BlastP(f"{dirname}/Sequence_Supplement",fasta_dict[sequence_name],50,0.01,sequence_name)  #Now we submit a BlastP search, but override the default expect and hits to get a more narrow set of sequences.
-            files_list.append(f"{dirname}/Sequence_Supplement/{sequence_name}_BlastP_Results.fasta") #We also record a list of all the output fasta files to concatanate them together later.
+            file=BlastP(f"{dirname}/Sequence_Supplement",fasta_dict[sequence_name],50,0.01,sequence_name)  #Now we submit a BlastP search, but override the default expect and hits to get a more narrow set of sequences.
+            if file:
+                files_list.append(f"{dirname}/Sequence_Supplement/{file}") #We also record a list of all the output fasta files to concatanate them together later.
     with open(f"{dirname}/Sequence_Supplement/Supplemented_BlastP_Sequences.fasta","a+") as fout:   #Now we need to write all of our Supplemented sequence searches together as one fasta file. Just smoosh 'em all together
         for fname in files_list:
             with open (fname,'r') as supfile:
@@ -710,6 +722,7 @@ def Select_Ancestor_Nodes(dirname): #Select ancestral nodes which have a high en
                 UFB.append(Supports[ASRnodes[i][0]][0])
                 SHALRT.append(Supports[ASRnodes[i][0]][1])
     try:
+        import matplotlib.pyplot as plt
         # Make the sequence prediction histogram
         plt.rcParams["figure.figsize"] = [7.00, 5.00]
         plt.rcParams["figure.autolayout"] = True
@@ -916,6 +929,7 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
             These sequences have an average of {round(sum([n[1] for n in nodes_data.values()]) / len(nodes_data),1)} positions below 85% confidence out of {len(node_confidences)} total positions.\n\
             The topology of these nodes can be found at {dirname}/IQTree_Phylo/Phylo.contree.\n")
     try:
+        import matplotlib.pyplot as plt
         # Make the sequence prediction histogram
         plt.rcParams["figure.figsize"] = [7.00, 5.00]
         plt.rcParams["figure.autolayout"] = True
@@ -931,6 +945,63 @@ def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
     except:
         print("Failed to make histogram of the average confidnece of each ancestral sequence.")
 
+def seq_heatmap(Seqs,fname,n_col=50): ### Written by Patrick Finneran
+    ### Seqs is a dictionary where labels are the keys 
+    ### and the values are two dictionaries: seq and score
+    ### seq is used for the annotation
+    ### score is used for the color value
+    ### Seqs = {node_name:{'seqs':sequence,'score':scores}}
+    ### Sequences must be aligned
+    ### Sequence must be a string
+    ### Score must be a list of same length of Sequence
+    
+    Sequences = {}
+    Scores = {}
+    for label,item in Seqs.items():
+        seqName = label
+        seq_length = len(item['seq'])
+        Sequences[label] = []
+        Scores[label] = []
+        for i in range(seq_length):
+            Sequences[label].append(item['seq'][i])
+            Scores[label].append(item['score'][i])
+    remainder = seq_length%n_col
+    for i in range(n_col-remainder):
+        for label in Seqs.keys():
+            Sequences[label].append(' ')
+            Scores[label].append(1)
+    ### Setup DataFrames
+    df_Scores = pd.DataFrame(Scores)
+    df_Scores = df_Scores.T
+    df_Seqs = pd.DataFrame(Sequences)
+    df_Seqs = df_Seqs.T
+    
+    ### Create cmap
+    cmap = [(1, 0, 0), (1, 0, 0), (1, 0, 0),
+         (1, 0, 0), (1, 0, 0), (1, 0, 0),
+         (1, 0, 0), (1, 0, 0), (1, 0, 0),
+         (1, 0, 0), (1, 0.2, 0), (1, 0.2, 0),
+         (1, 0.4, 0), (1, 0.4, 0), (1, 0.6, 0),
+         (1, 0.6, 0), (1, 0.8, 0), (1, 0.8, 0),
+         (1, 0.9, 0), (1, 1, 0)]
+
+#    fig, ax = plt.subplots(nrows=int(ceil(seq_length/n_col)+1),figsize=(10,int(ceil(seq_length/n_col)+1)))
+    fig, ax = plt.subplots(nrows=int(ceil(seq_length/n_col)+1),figsize=(10,int(ceil(seq_length/n_col)+1)/3))
+    for i in range(int(ceil(seq_length/n_col))):
+        h1 = sns.heatmap(df_Scores[df_Scores.columns[i*n_col:(i+1)*n_col]], square=True,xticklabels=False,vmin=0,vmax=1,annot=df_Seqs[df_Seqs.columns[i*n_col:(i+1)*n_col]],fmt = '',ax=ax[i],cbar=False,cmap=cmap)
+        ax[i].set_yticklabels(ax[i].get_yticklabels(),rotation=0)
+    cmap_ticks = [0]
+    for i in range(5):
+        cmap_ticks.append(cmap_ticks[-1]+1/5)
+    mappable = h1.get_children()[0]
+    plt.colorbar(mappable,
+                 cax = ax[-1],
+                 ticks=cmap_ticks,
+                 orientation = 'horizontal')
+    title = '{0} Consensus at Each Position'.format(seqName)
+    ax[0].set_title(title,fontsize=14)
+    plt.savefig(fname,format='pdf', dpi=1200, bbox_inches='tight')
+    plt.close()
 
 if __name__ == '__main__':
     directory='ASR' #Change this to the name of a directory where you want all your results output.
@@ -945,6 +1016,60 @@ if __name__ == '__main__':
         print("\n\n")
         print(Directory_Structure)
         print("\n\n")
+    elif (sys.argv[1] == "--makefigures") or (sys.argv[1] == "-mf"):
+        if not os.path.exists(f"{directory}/IQTree_Binary"):
+            print("Could not make heatmap figures - ASR has not been completed. Please finish ASR first.")
+            sys.exit()
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        from math import ceil
+        import seaborn as sns
+        #Let's make an object of form {NodeX:([sequence],[confidence])}
+        Consensus_Ancestors_with_Gaps_and_Confidence={}
+        ASR_Statefile_Dict=Statefile_to_Dict(directory,"IQTree_ASR/ASR.state")
+        Binary_Statefile_Dict=Statefile_to_Dict(directory,"IQTree_Binary/Binary.state")
+        #Find positions that are actually gaps in the ASR
+        Pos_with_Gaps={} #dictionary of {NodeX:[list of gaps at NodeX]}
+        for node,item in Binary_Statefile_Dict.items():
+            gap_pos=[]#list of positions with gaps
+            for i,pos in enumerate(item): #each position
+                if float(pos[0])>0.5:#If the posotion has majority gap
+                #The reason I've written it this was is that when the chances are  close together (0.501 to 0.499) IQTree puts a gap in the binary gap analysis *facepalm*
+                    gap_pos.append(i)
+            Pos_with_Gaps[node]=gap_pos #At each node, record the positions in the ancestral sequence that has majority node.
+        #Merge the Sequence ASR with the gap ASR
+        for node,cons_list in ASR_Statefile_Dict.items():#node is name, cons_list is list of (list of AA confidence values) for each position
+            consensus_seq=[]
+            confidence=[]
+            for i,pos in enumerate(cons_list):#pos is the position of ancestor at node
+                if i in (Pos_with_Gaps[node]): #If this position at this node is likely a gap, add a gap to the consensus sequence
+                    consensus_seq.append('-')
+                    confidence.append(Binary_Statefile_Dict[node][0])
+                else:
+                    consensus_seq.append(AA_key[pos.index(max(pos))]) #Otherwise, add the amino acid from ASR
+                    confidence.append(pos)
+            Consensus_Ancestors_with_Gaps_and_Confidence[node]={"seqs":consensus_seq,'score':confidence}
+        for node,item in Consensus_Ancestors_with_Gaps_and_Confidence.items():
+            seq_heatmap({node:item},f"{directory}/Confidence_Heatmaps/{node}_Confidences.pdf")
+    elif (sys.argv[1] == "--makelibraries") or (sys.argv[1] == "-ml"):
+        if len(sys.argv)!=3:
+            print("Please provide a cutoff value.")
+        try: 
+            cutoff = float(sys.argv[2])
+            if cutoff >= 1 or cutoff <=0:
+                print("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.025.")
+                raise ValueError("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.025.")
+        except:
+            print("Provided cutoff value could not be understood. Please enter a number between 0 and 1.")
+            raise ValueError("Provided cutoff value could not be understood. Please enter a number between 0 and 1.")
+    #DO LIBARY MAKING
+        try:
+            ASR_Statefile_Dict=Statefile_to_Dict(directory,"IQTree_ASR/ASR.state")
+            Binary_Statefile_Dict= Statefile_to_Dict(directory,"IQTree_Binary/Binary.state")
+            Make_Uncertianty_Libraries(directory,ASR_Statefile_Dict,Binary_Statefile_Dict,cutoff)
+        except:
+            print("Reconstruction of ASR libraries failed.")
+            raise RuntimeError("Reconstruction of ASR libraries failed.")
     else: 
         try:
             if len(sys.argv)==2:
@@ -952,11 +1077,18 @@ if __name__ == '__main__':
                 Final_Library_Size=500
                 Suppliment_Cutoff=0.7
             else:
-                Final_Library_Size=int(sys.argv[2])
-                Suppliment_Cutoff=float(sys.argv[3])
-                if not (Final_Library_Size>20) and (0.9>Suppliment_Cutoff>0.4):
-                    print("User provided parameters were not meaningul values.")
-                    raise ValueError("User provided parameters were not meaningul values.")
+                if len(sys.argv)!=4:
+                    print("Must provide two input parameters: Number of Ancestors and Suppliment cutoff. Reccomended values are 400 and 0.75.")
+                    raise ValueError("Must provide two input parameters: Number of Ancestors and Suppliment cutoff. Reccomended values are 400 and 0.75.")
+                try:
+                    Final_Library_Size=int(sys.argv[2])
+                    Suppliment_Cutoff=float(sys.argv[3])
+                    if not (Final_Library_Size>20) and (0.9>Suppliment_Cutoff>0.4):
+                        print("User provided parameters were not acceptable values.")
+                        raise ValueError("User provided parameters were not acceptable values.")
+                except:
+                    print("Provided user parameters could not be understood")
+                    raise ValueError("Provided user parameters could not be understood")
         except:
             print("User parameters could not be used. Proceeding with default parameters:\n   Desired Final Library size: 500 sequences.\n   Suppliment Cutoff: 0.7")
             Final_Library_Size=500
@@ -967,6 +1099,8 @@ if __name__ == '__main__':
                 raise ValueError("Sequence option read as raw sequence - The provided sequence could not be used. Please be sure no amino acids are \'X\'")
             Blastp_out_name = BlastP(directory,sequence)
             Final_Name = Sequence_Processing(directory,Blastp_out_name, sequence)
+        elif (os.path.exists(f"{directory}/Final_Sequences.fasta")):
+            Final_Name="Final_Sequences.fasta"
         else: 
             if not (os.path.exists(sys.argv[1])):
                 raise ValueError("The specified input fasta file does not exist.")
