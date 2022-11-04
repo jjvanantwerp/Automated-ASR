@@ -159,6 +159,9 @@ AA_Pair_lookup_EColi = {
     'WA':'ksg', 'WC':'tgs', 'WD':'krs', 'WE':'rrg', 'WF':'tks', 'WG':'kgg', 'WH':'yrs', 'WI':'wks', 'WK':'wrg', 'WL':'tkg', 'WM':'wkg', 'WN':'wrs', 'WP':'ysg', 'WQ':'yrg', 'WR':'ygg', 'WS':'tsg', 'WT':'wsg', 'WV':'kkg', 'WY':'trs', 
     'YA':'kmc', 'YC':'trc', 'YD':'kac', 'YE':'kas', 'YF':'twc', 'YG':'krc', 'YH':'yac', 'YI':'wwc', 'YK':'was', 'YL':'ywc', 'YM':'wws', 'YN':'wac', 'YP':'ymc', 'YQ':'yas', 'YR':'yrc', 'YS':'tmc', 'YT':'wmc', 'YV':'kwc', 'YW':'trs',
 }
+#A reverse lookup for degerate bases
+Degenerate_Base_lookup = {'a':'a','c':'c','g':'g','t':'t','r':'ag','y':'ct','m':'ac','k':'gt' ,'s':'cg','w':'at' ,'h':'act' ,'b':'cgt' ,'v':'acg' ,'d':'agt' ,'n':'acgt' }
+
 #An amino-acid key for IQ-Tree *.state files.
 AA_key = ['A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V']
 
@@ -595,7 +598,7 @@ def Post_MAFFT_processing(dirname,fasta_dict,multisequence,dynamic_sequence_redu
             os.system(f"rm {dirname}/Post_Mafft_Working1.fasta {dirname}/Post_Mafft_Working2.fasta")
             User_Sequence=fasta_dict.get("User_Sequence")#Update
     dict2fasta(fasta_dict,f'{dirname}/Post_MAFFT_Cleaned_Penultimate.fasta')
-    if dynamic_sequence_reduction and len(fasta_dict)>Final_Library_Size: #If on, this code will reduce the sequence alignment down to less than 500 sequences. It's on by default
+    if dynamic_sequence_reduction and len(fasta_dict)>Final_Library_Size: #If on, this code will reduce the sequence alignment down to less than set number of sequences. It's on by default
         keep_going=True
         identity=0.98
         for key,item in fasta_dict.items():
@@ -888,25 +891,53 @@ def Build_DNA_Sequence (Primer_Request, source='EColi'):
         raise ValueError ("The primer generated was not a valid DNA sequence. No clue how that happened. If you're seeing this error, it's proabbly caused by a bug.")
     return (primer_txt)
 
-def Make_Uncertianty_Libraries (dirname,ASR_Statefile_Dict,Binary_Statefile_Dict,Cutoff=0.125): #Make Uncertianty Libraries for all ancestral sequences with a high enough confidence at thier node
-    if not (Cutoff>0) and (Cutoff<1):
+def Make_Uncertianty_Libraries (dirname,ASR_Statefile_Dict,Binary_Statefile_Dict,Cutoff=0): #Make Uncertianty Libraries for all ancestral sequences with a high enough confidence at thier node
+    if not (Cutoff>=0) and (Cutoff<1):
         raise ValueError("DNA Library cutoff value is invalid. It must be a number between 0 and 1")
-    Good_Ancestor_Nodes = Select_Ancestor_Nodes(dirname)
-    for node in Good_Ancestor_Nodes: #For every node of sufficently high quality, we're going to make a DNA template with uncertianty cutoffs.
-        node_request=[] # A request is a list of (list of amino acids needed) at each position
-        Positions = ASR_Statefile_Dict[node]
-        for i,pos in enumerate(Positions): # For every position,
-            if (Binary_Statefile_Dict[node][i][0]) < 0.5: #If this position isn't a gap as determined by the Binary ASR
-                pos_AAs=[]
-                for j,prob in enumerate(pos): #For every probability at that position,
-                    if (prob) > Cutoff: # If the amino acid is above the threshold
-                        pos_AAs.append(AA_key[j]) # Record that AA at that position
-                if not bool(pos_AAs): # Empty lists evaluate as false
-                    pos_AAs=AA_key[pos.index(max(pos))]# If none of the amino acids have a high enough probability to pass the threshold, we'll just record the most likely one.
-                node_request.append(pos_AAs)
-        Degenerate_DNA = Build_DNA_Sequence(node_request)#Make a DNA sequence with degnerate bases
-        with open(f"{dirname}/DNA_Library_{Cutoff*100}%_Cutoff.fasta",'a+') as fout:
-            fout.write(f">{node}\n{Degenerate_DNA}\n")
+    if Cutoff == 0:
+        Degen_Seqs_dict={}
+        for cutoff_value in [0.05,0.1,0.15,0.2,0.25]:
+            Good_Ancestor_Nodes = Select_Ancestor_Nodes(dirname)
+            for node in Good_Ancestor_Nodes: #For every node of sufficently high quality, we're going to make a DNA template with uncertianty cutoffs.
+                node_request=[] # A request is a list of (list of amino acids needed) at each position
+                Positions = ASR_Statefile_Dict[node]
+                for i,pos in enumerate(Positions): # For every position,
+                    if (Binary_Statefile_Dict[node][i][0]) < 0.5: #If this position isn't a gap as determined by the Binary ASR
+                        pos_AAs=[]
+                        for j,prob in enumerate(pos): #For every probability at that position,
+                            if (prob) > cutoff_value: # If the amino acid is above the threshold
+                                pos_AAs.append(AA_key[j]) # Record that AA at that position
+                        if not bool(pos_AAs): # Empty lists evaluate as false
+                            pos_AAs=AA_key[pos.index(max(pos))]# If none of the amino acids have a high enough probability to pass the threshold, we'll just record the most likely one.
+                        node_request.append(pos_AAs)
+                Degenerate_DNA = Build_DNA_Sequence(node_request)#Make a DNA sequence with degnerate bases
+                if cutoff_value == 0.05:
+                    Degen_Seqs_dict[node]=[Library_Size_Count(Degenerate_DNA)]
+                else:
+                    Degen_Seqs_dict[node].append(Library_Size_Count(Degenerate_DNA))
+                with open(f"{dirname}/DNA_Library_{cutoff_value*100}%_Cutoff.fasta",'a+') as fout:
+                    fout.write(f">{node}\n{Degenerate_DNA}\n")      
+        with open(f"{dirname}/Library_Size_Information.csv",'w+') as fout:
+            fout.write("Ancestral Node, Sequences in 5% Confidence Library,Sequences in 10% Confidence Library,Sequences in 15% Confidence Library,Sequences in 20% Confidence Library,Sequences in 25% Confidence Library,\n")
+            for key,degen_seq_list in Degen_Seqs_dict.items():
+                fout.write(f"{key},{degen_seq_list[0]},{degen_seq_list[1]},{degen_seq_list[2]},{degen_seq_list[3]},{degen_seq_list[4]},\n")
+    else:
+        Good_Ancestor_Nodes = Select_Ancestor_Nodes(dirname)
+        for node in Good_Ancestor_Nodes: #For every node of sufficently high quality, we're going to make a DNA template with uncertianty cutoffs.
+            node_request=[] # A request is a list of (list of amino acids needed) at each position
+            Positions = ASR_Statefile_Dict[node]
+            for i,pos in enumerate(Positions): # For every position,
+                if (Binary_Statefile_Dict[node][i][0]) < 0.5: #If this position isn't a gap as determined by the Binary ASR
+                    pos_AAs=[]
+                    for j,prob in enumerate(pos): #For every probability at that position,
+                        if (prob) > Cutoff: # If the amino acid is above the threshold
+                            pos_AAs.append(AA_key[j]) # Record that AA at that position
+                    if not bool(pos_AAs): # Empty lists evaluate as false
+                        pos_AAs=AA_key[pos.index(max(pos))]# If none of the amino acids have a high enough probability to pass the threshold, we'll just record the most likely one.
+                    node_request.append(pos_AAs)
+            Degenerate_DNA = Build_DNA_Sequence(node_request)#Make a DNA sequence with degnerate bases
+            with open(f"{dirname}/DNA_Library_{Cutoff*100}%_Cutoff.fasta",'a+') as fout:
+                fout.write(f">{node}\n{Degenerate_DNA}\n")
 
 def Write_Confidences(dirname,ASR_Statefile_Dict,Binary_Statefile_Dict):
     nodes_data={}
@@ -1003,8 +1034,22 @@ def seq_heatmap(Seqs,fname,n_col=50): ### Written by Patrick Finneran
     plt.savefig(fname,format='pdf', dpi=1200, bbox_inches='tight')
     plt.close()
 
+def Library_Size_Count(Degenerate_Sequence):
+    if not Is_Valid_Codon(Degenerate_Sequence):
+        raise ValueError("Not a valid DNA sequence")
+    Codons = [Degenerate_Sequence[i:i+3] for i in range (0,len(Degenerate_Sequence)-2,3)]
+    Library_Size=1
+    for Codon in Codons:
+        CodedAminoAcids=[]
+        for base1 in Degenerate_Base_lookup[Codon[0]]:
+            for base2 in Degenerate_Base_lookup[Codon[1]]:
+                for base3 in Degenerate_Base_lookup[Codon[2]]:
+                    CodedAminoAcids.append(Codon_to_AA[base1+base2+base3])
+        Library_Size*=len(set(CodedAminoAcids))
+    return(Library_Size)
+
 if __name__ == '__main__':
-    directory='ASR' #Change this to the name of a directory where you want all your results output.
+    directory='E14/ASR' #Change this to the name of a directory where you want all your results output.
 
     if len(sys.argv)==1:
         print("No input file provided. Use option \"help\" to see how to use this program.")
@@ -1056,9 +1101,9 @@ if __name__ == '__main__':
             print("Please provide a cutoff value.")
         try: 
             cutoff = float(sys.argv[2])
-            if cutoff >= 1 or cutoff <=0:
-                print("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.025.")
-                raise ValueError("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.025.")
+            if cutoff >= 1 or cutoff <0:
+                print("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.25.")
+                raise ValueError("Cutoff value must be between 0 and 1, with a reccomended value between 0.05 and 0.25.")
         except:
             print("Provided cutoff value could not be understood. Please enter a number between 0 and 1.")
             raise ValueError("Provided cutoff value could not be understood. Please enter a number between 0 and 1.")
