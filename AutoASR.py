@@ -827,7 +827,8 @@ def Binary_Gap_Analysis(dirname,finname): #Do a binary ASR to determine where ga
             else:
                 consensus_seq+= AA_key[pos.index(max(pos))] #Otherwise, add the amino acid from ASR
         Consensus_Ancestors_with_Gaps[node]=consensus_seq
-    Clean_all_gaps(Consensus_Ancestors_with_Gaps)
+    #The following line is optional, if you don't want gaps in the ancestral seqeucnes
+    #Clean_all_gaps(Consensus_Ancestors_with_Gaps)
     dict2fasta(Consensus_Ancestors_with_Gaps,f"{dirname}/Consensus_Ancestors_with_Gaps.fasta")
     Consensus_Ancestors_without_Gaps={}
     for key,item in Consensus_Ancestors_with_Gaps.items():
