@@ -1,7 +1,6 @@
 # Automated-ASR
-This is a python code that automates the workflow of Ancestral Sequence Reconstruction. Learning how to do ASR well is time consuming, as is actually doing ASR, so this code is designed to be used by labs who have no expeirence with ASR and by labs who use ASR all the time, but may have more sequences they're interested in exploring than they can handle manually. This script should take the active time for an ASR run down to less than 5 minutes once it's set up.
-So if you want to know about the evoloutionary history of a protein of interest or if you just want a new starting point for directed evoloution, ancestral proteins can be more accessable than ever before.
-Additionally, AutoASR will provide DNA libraries for all the ancestral proteins that are reconstructed so that you can take full advantage of the uncertianty in the ancestral seqeucne and test a whole library of potentially useful proteins.
+AP-LASR is a python code that automates the workflow of Ancestral Sequence Reconstruction for the purpose of generating combintorial protein libraries from ancestral sequences. Learning how to do ASR well is time consuming, as is actually doing ASR, so this code is designed to be used by labs who have no expeirence with ASR and by labs who use ASR all the time, but may have more sequences they're interested in exploring than they can handle manually. This script should take the active time for an ASR run down to less than 5 minutes once it's set up. So if you want to know about the evoloutionary history of a protein of interest or if you just want a new starting point for directed evoloution, ancestral proteins can be more accessable than ever before.
+Significantly, AP-LASR will provide DNA libraries for all the ancestral proteins that are reconstructed so that you can take full advantage of the uncertianty in the ancestral seqeucne and test a whole library of potentially useful proteins.
 To see more about how the code works, run this python with the -help option, or look at the bottom of this README.
 Some lines may need to be changed to reflect the executable names in your system for IQTree, MAFFT, and CD-Hit.
 When downloading this software to use for your own analysis, it will be nessecary to do a little setup:
@@ -13,7 +12,7 @@ When downloading this software to use for your own analysis, it will be nessecar
   The Biopython module will need to be installed. The MatPlotLib module is optional.
   If you have any questions, feel free to reach out - my email is in the header of the python file.
 
-AutoASR is written fully in Python, and is a sereis of function calls for each task or step in the ASR process. I know this is written at the level of a first-year undergraduate, which is because I wrote this when I was a first-year undergraduate. If you have style tips, I'm all ears.
+AP-LASR is written fully in Python, and is a sereis of function calls for each task or step in the ASR process. I know this is written at the level of a first-year undergraduate, which is because I wrote this when I was a first-year undergraduate. If you have style tips, I'm all ears.
 
 
 
@@ -23,11 +22,11 @@ This software automates the process of ancestral sequence reconstruction. This s
      The second input is the desired number of final sequences in the ASR. It must be a whole number greater than 20; the actual number of final sequences may vary. Default is 500 sequences.
      The third input is the sequence suppliment similarity cutoff. This represents the threshold below which sequences will be supplimented to fill out sequence space. It must be a number between 0.4 and 0.9. Default is 0.7.
 Options should be entered on the command line in the form
-     python AutoASR.py {input.fasta} {Number of Desired Sequences} {Sequence Suppliment Cutoff}
+     python AP-LASR.py {input.fasta} {Number of Desired Sequences} {Sequence Suppliment Cutoff}
 Entering just the option "help" or "h" will display this description. 
 
 
-This AutoASR script makes use of external software, which must be set up before it can be used. See the GitHub page for this project (github.com/jjvanantwerp/Automated-ASR) for download links. 
+This AP-LASR script makes use of external software, which must be set up before it can be used. See the GitHub page for this project (github.com/jjvanantwerp/Automated-ASR) for download links. 
 This software requires IQTree 2, CD-Hit, and MAFFT to be downloaded and set up with their standard executable names added to the path. 
 It also requires the python modules BioPython (Bio) and xml to be installed. Optionally, the python module matplotlib can be installed for production of figures from the data.
 
@@ -35,7 +34,7 @@ It also requires the python modules BioPython (Bio) and xml to be installed. Opt
 
 The program will make the following directory structure, where ROOT is the directory the script is placed in:
     ROOT/
-    |--AutoASR.py                             This script
+    |--AP-LASR.py                             This script
     |--Input.fasta                            The input fasta file, if you used one.
     |--ASR/...................................The directory containing all work from the most recent run. The software WILL overwrite old runs.
     | |--BlastP_XML_                                The raw XML returned by NCBI's BlastP, if you want to find more information about the BlastP resutls.
