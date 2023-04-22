@@ -1579,7 +1579,6 @@ if __name__ == '__main__':
         '--suppliment',
         action='store',
         dest='SupplimentationCutoff',
-        default=0,
         type=float,
         help='Supplimentation is needed when dataset diversity must be improved. We reccomend beginning with a value of 75%%.')
     parser_mode2.add_argument(
@@ -1629,7 +1628,7 @@ if __name__ == '__main__':
 
     # parser.set_defaults(func=lambda args: parser.print_help())
     args = parser.parse_args()
-    if args.mode != 'Assist':
+    if (args.mode == 'ASR')or(args.mode == 'MakeFigures')or(args.mode == 'RemakeLibraries'):
         directory = args.directory
 
     if args.mode == 'Assist':
@@ -1645,25 +1644,23 @@ if __name__ == '__main__':
         CDHIT_Executable = args.cdhitexe
         MAFFT_Executable = args.mafftexe
         IQTREE_Executable = args.iqtreeexe
-        try:
-            Final_Dataset_Size = args.FinalDatasetSize
+        Final_Dataset_Size = args.FinalDatasetSize
+        if not (Final_Dataset_Size > 50):
+            print("User provided value for the final dataset size was too small. Preceding with a final dataset size of 60 sequences.")
+            Final_Dataset_Size = 60
+        if args.SupplimentationCutoff is not None:
             if (100 > args.SupplimentationCutoff > 40):
                 print(
                     f"Interpreting supplimentation cutoff {args.SupplimentationCutoff} as {args.SupplimentationCutoff}%.")
                 Suppliment_Cutoff = (args.SupplimentationCutoff / 100)
             else:
                 Suppliment_Cutoff = args.SupplimentationCutoff
-            if not (Final_Dataset_Size > 50):
-                print("User provided value for the final dataset size was too small. Preceding with a final dataset size of 60 sequences.")
-                Final_Dataset_Size = 60
-            if not (0.9 > Suppliment_Cutoff > 0.4):
+            if not (0.9 > Suppliment_Cutoff > 0.4) or (Suppliment_Cutoff==0):
                 print("User provided value for the supplimentation cutoff was outside the valid range. Please specify a value between 90% and 40%.")
                 raise ValueError(
                     "User provided value for the supplimentation cutoff was outside the valid range. Please specify a value between 90% and 40%.")
-        except BaseException:
-            print("Provided user parameters could not be understood")
-            raise ValueError(
-                "Provided user parameters could not be understood")
+        else:
+            Suppliment_Cutoff=0
         if '.' not in args.input:
             sequence = args.input.upper().replace("-", '')
             if any([True for n in sequence if n not in AA_key]):
