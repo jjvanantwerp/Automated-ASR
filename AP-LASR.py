@@ -1312,7 +1312,7 @@ def Make_Uncertianty_Libraries(
         ASR_Statefile_Dict,
         Binary_Statefile_Dict,
         Cutoff=0):
-    if ((Cutoff < 0.5) or (Cutoff > 1)) and (Cutoff != 0):  # Error catching
+    if ((Cutoff > 0.5) or (Cutoff < 0)):  # Error catching
         raise ValueError(
             "DNA Library cutoff value is invalid. It must be a number between 0.5 and 1")
     if not (os.path.isdir(f"{dirname}/DNA_Libraries")):  # Make directory
@@ -1359,7 +1359,7 @@ def Make_Uncertianty_Libraries(
                 f"Confidece Threshold,{','.join(Good_Ancestor_Nodes)},\n")
             for i, value in enumerate(
                     [0.25, 0.2, 0.15, 0.125, 0.1, 0.075, 0.05, 0.025]):
-                row_list = [Degen_Seqs_Size[node][i]
+                row_list = [str(Degen_Seqs_Size[node][i])
                             for node in Good_Ancestor_Nodes]
                 fout.write(
                     f"{value}% Confidence threshold library,{','.join(row_list)},\n")
@@ -1398,7 +1398,7 @@ def Make_Uncertianty_Libraries(
                     node_request.append(pos_AAs)
             # Make a DNA sequence with degnerate bases
             Degenerate_DNA = Build_DNA_Sequence(node_request)
-            row_list.append(Library_Size_Count(Degenerate_DNA))
+            row_list.append(str(Library_Size_Count(Degenerate_DNA)))
             with open(f"{dirname}/DNA_Libraries/Library_{Cutoff*100}%_Cutoff.fasta", 'a+') as fout:
                 fout.write(f">{node}\n{Degenerate_DNA}\n")
         # This will append a new line to the bottom of the .csv containing the
@@ -1624,7 +1624,8 @@ if __name__ == '__main__':
         '--threshold',
         action='store',
         dest='threshold',
-        required=True)
+        required=True,
+        type=float)
 
     # parser.set_defaults(func=lambda args: parser.print_help())
     args = parser.parse_args()
@@ -1764,10 +1765,10 @@ if __name__ == '__main__':
             cutoff = (args.threshold / 100)
         else:
             cutoff = args.threshold
-        if cutoff >= 1 or cutoff < 0.5:
-            print("Confidence threshold value must be between 0.5 and 1, with a reccomended value between 0.025 and 0.25.")
+        if (cutoff > 0.5) or (cutoff < 0):
+            print("Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25.")
             raise ValueError(
-                "Confidence threshold value must be between 0.5 and 1, with a reccomended value between 0.025 and 0.25.")
+                "Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25.")
         # DO LIBARY MAKING
         try:
             ASR_Statefile_Dict = Statefile_to_Dict(
