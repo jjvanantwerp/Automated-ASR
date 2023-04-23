@@ -13,32 +13,33 @@ import argparse
 
 Directory_Structure = '''The program will make the following directory structure, where ROOT is the directory the script is placed in:
     ROOT/
-    |AP-LASR.py                             This script
+    |AP-LASR.py                               This script
     |--Input.fasta                            The input fasta file, if you used one.
     |--ASR/...................................The directory containing all work from the most recent run. The software WILL overwrite old runs.
+    | |--BlastP_Results.fasta                       Fasta file containing all BlastP resutls.
     | |--BlastP_XML_                                The raw XML returned by NCBI's BlastP, if you want to find more information about the BlastP resutls.
     | |--HitsInfo.csv                               Data about the BlastP hits - Sequence IDs and notes.
-    | |--CD-Hit_Inital_Sequences.fasta.clstr        Residual from CD-Hit.
-    | |--Sequence_Supplement/.......................The directory for the files created by adding additional sequence data to poorly supported regions of the tree. It's not always used.
-    | | |--*__Suppliment_HitsInfo.csv                   Same as HitInfo.csv, but for each suppliment.
-    | | |--*_BlastP_Results.fasta                       Each top 50 hits from sequences that are supplimented.
-    | |--Final_Sequences.fasta                      The set of moderns equences used for the ASR and the foundation of all the later calculation
+    | |--Final_Sequences.fasta                      The set of moderns equences used for the ASR and the foundation of all the later calculation.
+    | |--Final_Tree.treefile                        The final tree which is best for reading, as it has the most information in one place.
+    | |--Concesus_Ancestors_with_Gaps.fasta         The set of likely ancestors, aligned and with gaps where the binary gap analysis predicts them.
+    | |--Concesus_Ancestors_without_Gaps.fasta      The set of likely ancestors, unaligned and without gaps.
     | |--IQTree_Phylo/..............................The directory for IQTree files from the phylogoney.
     | | |--Phylo.*                                      All IQTree files.
     | | |--Supports.*                                   Data about the confidence of tree topology - .csv holds all data, .txt is summary.
-    | | |--UFB_Confidences.png                          Histogram of UFB node support values.
-    | | |--SHaLRT_Confidences.png                       Histogram of SHaLRT node support values
+    | | |--UFB_Confidences.png                          Histogram of UFB node support values (if made).
+    | | |--SHaLRT_Confidences.png                       Histogram of SHaLRT node support values (if made).
     | |--IQTree_ASR/................................The directory for IQTree files from ASR.
     | | |--ASR.*                                        All IQTree files.
-    | | |--Confidences.*                                Data about the confidence of ASR prediction - .csv holds all data, .txt is summary, .png is a histogram.
+    | | |--Ancestral_Sequence_Confidences.*             Data about the confidence of ASR prediction - .csv holds all data, .txt is summary, .png is a histogram (if made).
     | |--IQTree_Binary/.............................The directory for IQTree files from gap analysis.
     | | |--Binary_Alignment.fasta                       A binary alinment of modern sequences - gap or not.
     | | |--Binary.*                                     All IQTree files.
     | |--DNA_Libraries/.............................The directory for IQTree files from gap analysis.
     | | |--Library_Size_Information.csv                 Information on the size of generated libraries.
     | | |--Library_**%_Cutoff.fasta                     Fasta of DNA for all high-confidence ancestors, with degenerate codons coding for all AAs with more than a certian likelihood.
-    | |--Concesus_Ancestors_with_Gaps.fasta         The set of likely ancestors, aligned and with gaps where the binary gap analysis predicts them.
-    | |--Final_Tree.treefile                        The final tree which is best for reading, as it has the most information in one place.
+    | |--Sequence_Supplement/.......................The directory for the files created by adding additional sequence data to poorly supported regions of the tree.
+    | | |--*__Suppliment_HitsInfo.csv                   Same as HitInfo.csv, but for each suppliment.
+    | | |--*_BlastP_Results.fasta                       Each top 50 hits from sequences that are supplimented.
     | |--Confidence_Heatmaps/.......................The directory for IQTree files from gap analysis. Only generated after running the script again with the MakeFigures option.
     | | |--*_Confidences.pdf                            A heatmap of the confidence values for each ancestral position.
     '''
