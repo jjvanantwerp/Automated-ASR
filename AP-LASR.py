@@ -548,15 +548,25 @@ def Sequence_Processing(dirname, finname, sequence):
     Fasta_Dict = fasta2dict(f"{dirname}/Early_Alignment_temp.fasta", {})
     os.remove(f"{dirname}/Early_Alignment_temp.fasta")
     if isinstance(sequence, dict):
-        user_seq_name = list(sequence.keys())[0]
-        Hamming_Dict = Fasta_Dict_Hamming(
-            Fasta_Dict, Fasta_Dict[user_seq_name])
-        for key, item in Hamming_Dict.items():
-            # If a given sequence has less than 60% similarity with the user
-            # sequence, remove it.
-            if (item / len(sequence[user_seq_name])
-                    ) > 0.5 and key != user_seq_name:
-                Fasta_Dict.pop(key)
+        nomatch=True
+        n=0
+        while nomatch:
+        user_seq_name = list(sequence.keys())[n]
+        try:
+            Hamming_Dict = Fasta_Dict_Hamming(
+                Fasta_Dict, Fasta_Dict[user_seq_name])
+            nomatch=False
+            for key, item in Hamming_Dict.items():
+                # If a given sequence has less than 60% similarity with the user
+                # sequence, remove it.
+                if (item / len(sequence[user_seq_name])
+                        ) > 0.5 and key != user_seq_name:
+                    Fasta_Dict.pop(key)
+        except:
+            if n<length(sequence)
+                n=n+1
+            else:
+                raise RuntimeError("None of the user-submitted sequences survived CD-Hit clustering.")
     else:
         # We have now computed the hamming distance of all sequences.
         Hamming_Dict = Fasta_Dict_Hamming(
