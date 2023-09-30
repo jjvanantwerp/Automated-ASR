@@ -548,7 +548,7 @@ def Sequence_Processing(dirname, finname, sequence):
     Fasta_Dict = fasta2dict(f"{dirname}/Early_Alignment_temp.fasta", {})
     os.remove(f"{dirname}/Early_Alignment_temp.fasta")
     if isinstance(sequence, dict):
-        user_seq_name = list(User_Input_Sequence.keys())[0]
+        user_seq_name = list(sequence.keys())[0]
         Hamming_Dict = Fasta_Dict_Hamming(
             Fasta_Dict, Fasta_Dict[user_seq_name])
         for key, item in Hamming_Dict.items():
