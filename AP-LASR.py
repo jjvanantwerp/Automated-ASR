@@ -539,42 +539,27 @@ def BlastP(dirname, sequence, hits=2000, expect_value=0.2, sequence_name=None):
 
 def Sequence_Processing(dirname, finname, sequence):
     Fasta_Dict = {}
-    try:
-        # Alignment is needed for the Hamming Distance
-        os.system(
-            f"{MAFFT_Executable} {dirname}/{finname} > {dirname}/Early_Alignment_temp.fasta")
-    except BaseException:
-        raise RuntimeError("There was an error running MAFFT.")
-    Fasta_Dict = fasta2dict(f"{dirname}/Early_Alignment_temp.fasta", {})
-    os.remove(f"{dirname}/Early_Alignment_temp.fasta")
     if isinstance(sequence, dict):
-        nomatch=True
-        n=0
-        while nomatch:
-        user_seq_name = list(sequence.keys())[n]
-        try:
-            Hamming_Dict = Fasta_Dict_Hamming(
-                Fasta_Dict, Fasta_Dict[user_seq_name])
-            nomatch=False
-            for key, item in Hamming_Dict.items():
-                # If a given sequence has less than 60% similarity with the user
-                # sequence, remove it.
-                if (item / len(sequence[user_seq_name])
-                        ) > 0.5 and key != user_seq_name:
-                    Fasta_Dict.pop(key)
-        except:
-            if n<length(sequence)
-                n=n+1
-            else:
-                raise RuntimeError("None of the user-submitted sequences survived CD-Hit clustering.")
+        with open(f"{dirname}/{finname}",'a') as fin:
+            fin.write("\n")
+            for key,item in sequence.items():
+                fin.write(f">{key}\n{item}\n")
     else:
+        try:
+            # Alignment is needed for the Hamming Distance
+            os.system(
+                f"{MAFFT_Executable} {dirname}/{finname} > {dirname}/Early_Alignment_temp.fasta")
+        except BaseException:
+            raise RuntimeError("There was an error running MAFFT.")
+        Fasta_Dict = fasta2dict(f"{dirname}/Early_Alignment_temp.fasta", {})
+        os.remove(f"{dirname}/Early_Alignment_temp.fasta")
         # We have now computed the hamming distance of all sequences.
         Hamming_Dict = Fasta_Dict_Hamming(
             Fasta_Dict, Fasta_Dict["User_Sequence"])
         for key, item in Hamming_Dict.items():
-            # If a given sequence has less than 60% similarity with the user
+            # If a given sequence has less than 50% similarity with the user
             # sequence, remove it.
-            if (item / len(sequence)) > 0.5 and key != "User_Sequence":
+            if (item / len(Fasta_Dict["User_Sequence"])) > 0.5 and key != "User_Sequence":
                 Fasta_Dict.pop(key)
     for key, item in Fasta_Dict.items():
         # We now need to remove all the gaps in all the sequences to use CD-Hit
@@ -598,6 +583,7 @@ def Sequence_Processing(dirname, finname, sequence):
     if isinstance(sequence, dict):
         # The Raw alignment can then be processed into an alignment that's
         # ready for IQTree
+        user_seq_name=[name for name in sequence.keys() if name in Fasta_Dict_Aligned.keys()][0]
         return_name = Post_MAFFT_processing(
             dirname, Fasta_Dict_Aligned, user_seq_name)
     else:  # If only one
@@ -859,7 +845,6 @@ def Post_MAFFT_processing(
         fasta_dict,
         multisequence,
         dynamic_sequence_reduction=True):
-    reserve_user_seq = fasta_dict.get("User_Sequence")
     # These functions **MODIFY** the fasta_dict by doing what their names say
     # they do.
     old_user_length = 0
@@ -867,8 +852,9 @@ def Post_MAFFT_processing(
         User_Sequence = fasta_dict.get(multisequence)
         # Each of these functions mutate the alignment, so it's important to
         # repeat until we've finsihed finding all misalignments.
-        while len(User_Sequence) != old_user_length:
-            old_user_length = len(User_Sequence)  # Store length
+        # HOWEVER - with a multi-sequence input, this tends to be overzealous. 
+        # We'll only go through the loop twice.
+        for i in range (2):
             Remove_Insertions(fasta_dict, User_Sequence)  # Insertions
             Clean_all_gaps(fasta_dict)  # Clean
             User_Sequence = fasta_dict.get(multisequence)  # Update
