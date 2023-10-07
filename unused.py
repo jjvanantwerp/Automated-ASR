@@ -1,4 +1,4 @@
-#These are unused functions, in storage.
+#These are unused functions, in storage. If you find a repuropsed use for them, be my guest.
 # Written by James VanAntwerp in September 2021 - vanant25@msu.edu
 # Written by Pattrick Finneran, Menten AI, Palo Alto, California, United States of America
 # Written for the Woldring Lab, Michigan State University in East Lansing, Michigan, USA.
