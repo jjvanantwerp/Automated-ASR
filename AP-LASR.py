@@ -1,7 +1,7 @@
 # Semi-Automation of the Ancestral Sequence Reconstruction Workflow
 # This is a program that constructs rough estimates of ancestral sequence reconstruction from an amino acid sequence.
 # This program requires instalation of the Bioservieces module
-# Written by James VanAntwerp in September 2021 - vanant25@msu.edu
+# Written by James VanAntwerp from September 2020 through May 2023 - contact  vanantj @ udel . edu
 # Written by Pattrick Finneran, Menten AI, Palo Alto, California, United States of America
 # Written for the Woldring Lab, Michigan State University in East Lansing,
 # Michigan, USA.
