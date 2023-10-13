@@ -52,11 +52,11 @@ This software can run in one of four modes.
         option -i specifies the name of the input Fasta file, or can take a raw protein sequence. This is the only mandatory input.
         option -n specifies the name of the output directory. The default is "ASR".
         option -s specifies the desired maximum size of the final dataset of modern homologs. This allows users some control over the time AP-LASR will take to run, and the detail/quality of the ASR. The default is 500.
-        option -supplement will turn on supplementation at the provided similarity cutoff (entered as a decimal). If you do turn on supplementation, there is not a default value but we reccomend users specify something between 0.7 and 0.85. 
+        option --supplement will turn on supplementation at the provided similarity cutoff (entered as a decimal). If you do turn on supplementation, there is not a default value but we reccomend users specify something between 0.7 and 0.85. 
         option -iqtree allows users to specify an executable for IQTree other than the default ("iqtree").
-        option -cdhit allows users to specify an executable for CH-Hit other than the default ("cd-hit").
-        option -mafft allows users to specify an executable for MAFFT other than the default ("mafft").
-        option -MSI allows users to specify the number of times the function "Post_MAFFT_Processing" iterates over the raw alignment to generate the final dataset. Each iteation will remove a large number of sequences, more if the different input sequecnes are dissimilar. Default is 2.
+        option --cdhit allows users to specify an executable for CH-Hit other than the default ("cd-hit").
+        option --mafft allows users to specify an executable for MAFFT other than the default ("mafft").
+        option --MSI allows users to specify the number of times the function "Post_MAFFT_Processing" iterates over the raw alignment to generate the final dataset. Each iteation will remove a large number of sequences, more if the different input sequecnes are dissimilar. Default is 2.
      MakeFigures mode will generate figures from ASR data of a previous ASR run - specify the directory where the results of interest are stored.
         option -n specifies the name of the directory where the ASR results are stored. The default is "ASR".
      RemakeLibrareies mode will generate new combinatorial libraries from ancestral proteins of a previous ASR run with a specified threshold confidence. This will allow generation of a library with a different size than what was generated with the default threshold confidences. Specify the directory where the ASR results of interest are stored.
