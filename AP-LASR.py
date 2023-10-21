@@ -1374,6 +1374,33 @@ def Make_Uncertianty_Libraries(
             fout.write(
                 f"{Cutoff*100}% Confidence threshold library,{','.join(row_list)},\n")
 
+# Make a library that is AltAll as described by https://doi.org/10.1093/molbev/msw223
+def Alt_All_Library(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
+    if not (os.path.isdir(f"{dirname}/DNA_Libraries")):  # Make directory
+        os.mkdir(f"{dirname}/DNA_Libraries")
+    Good_Ancestor_Nodes = Select_Ancestor_Nodes(dirname)
+    Alternate_Ancestors = {}
+    # For every node of sufficently high quality, we're going to make a DNA
+    # template with uncertianty cutoffs.
+    for node in Good_Ancestor_Nodes:
+        Alt_Anc = []  # Sequence of alternate ancestor
+        Positions = ASR_Statefile_Dict[node]
+        for i, pos in enumerate(Positions):  # For every position,
+            # If this position isn't a gap as determined by the Binary ASR
+            if (Binary_Statefile_Dict[node][i][0]) < 0.5:
+                # This gets the second-highest probability at the position
+                Alt_Prob = max([prob for prob in pos if prob != max(pos)])
+                if Alt_Prob > 0.2:  # If that is higher than the cutoff
+                    pos_AA = AA_key[pos.index(Alt_Prob)]  # Add to sequence.
+                else:  # If the alternate isn't good enough
+                    # we'll just record the most likely one.
+                    pos_AA = AA_key[pos.index(max(pos))]
+                Alt_Anc.append(pos_AA)
+        # Make a DNA sequence with degnerate bases
+        Alternate_Ancestors[node] = "".join(Alt_Anc)
+    with open(f"{dirname}/DNA_Libraries/Alt_All_Library.fasta", "a+") as fout:
+        for node, seq in Alternate_Ancestors.items():
+            fout.write(f">{node}\n{seq}\n")
 
 def Write_Confidences(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
     nodes_data = {}
@@ -1598,8 +1625,14 @@ if __name__ == '__main__':
         '--threshold',
         action='store',
         dest='threshold',
-        required=True,
+        default=0,
         type=float)
+    parser_mode4.add_argument(
+        "-A",
+        "--AltAll",
+        action="store_true",
+        dest="Alt_All",
+        help='Turns on Alt-All libary mode as described by https://doi.org/10.1093/molbev/msw223')
     # parser.set_defaults(func=lambda args: parser.print_help())
     args = parser.parse_args()
     if (args.mode == 'ASR') or (args.mode == 'MakeFigures') or (
@@ -1733,34 +1766,61 @@ if __name__ == '__main__':
             seq_heatmap({node: item},
                         f"{directory}/Confidence_Heatmaps/{node}_Confidences.pdf")
 
-    if args.mode == 'RemakeLibraries':
-        if (100 > args.threshold > 50):
-            print(
-                f"Interpreting confidence threshold {args.threshold} as {args.threshold}%.")
-            cutoff = (args.threshold / 100)
+    if args.mode == "RemakeLibraries":
+        if args.Alt_All:
+            # Make an Alt-All Library
+            try:
+                ASR_Statefile_Dict = Statefile_to_Dict(
+                    directory, "IQTree_ASR/ASR.state")
+                Binary_Statefile_Dict = Statefile_to_Dict(
+                    directory, "IQTree_Binary/Binary.state"
+                )
+            except BaseException:
+                print(
+                    "Failed to read in data from previous ASR run - be sure the correct directory is specified."
+                )
+                raise RuntimeError(
+                    "Failed to read in data from previous ASR run - be sure the correct directory is specified."
+                )
+            try:
+                Alt_All_Library(
+                    directory, ASR_Statefile_Dict, Binary_Statefile_Dict)
+            except BaseException:
+                print("Reconstruction of ASR ALt-All libraries failed.")
+                raise RuntimeError("Reconstruction of ASR ALt-All libraries failed.")
         else:
-            cutoff = args.threshold
-        if (cutoff > 0.5) or (cutoff < 0):
-            print("Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25.")
-            raise ValueError(
-                "Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25.")
-        # DO LIBARY MAKING
-        try:
-            ASR_Statefile_Dict = Statefile_to_Dict(
-                directory, "IQTree_ASR/ASR.state")
-            Binary_Statefile_Dict = Statefile_to_Dict(
-                directory, "IQTree_Binary/Binary.state")
-        except BaseException:
-            print(
-                "Failed to read in data from previous ASR run - be sure the correct directory is specified.")
-            raise RuntimeError(
-                "Failed to read in data from previous ASR run - be sure the correct directory is specified.")
-        try:
-            Make_Uncertianty_Libraries(
-                directory,
-                ASR_Statefile_Dict,
-                Binary_Statefile_Dict,
-                cutoff)
-        except BaseException:
-            print("Reconstruction of ASR libraries failed.")
-            raise RuntimeError("Reconstruction of ASR libraries failed.")
+            if 100 > args.threshold > 50:
+                print(
+                    f"Interpreting confidence threshold {args.threshold} as {args.threshold}%."
+                )
+                cutoff = args.threshold / 100
+            else:
+                cutoff = args.threshold
+            if (cutoff > 0.5) or (cutoff < 0):
+                print(
+                    "Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25."
+                )
+                raise ValueError(
+                    "Confidence threshold value must be between 0.5 and 0, with a reccomended value between 0.025 and 0.25."
+                )
+            # DO LIBARY MAKING
+            try:
+                ASR_Statefile_Dict = Statefile_to_Dict(
+                    directory, "IQTree_ASR/ASR.state")
+                Binary_Statefile_Dict = Statefile_to_Dict(
+                    directory, "IQTree_Binary/Binary.state"
+                )
+            except BaseException:
+                print(
+                    "Failed to read in data from previous ASR run - be sure the correct directory is specified."
+                )
+                raise RuntimeError(
+                    "Failed to read in data from previous ASR run - be sure the correct directory is specified."
+                )
+            try:
+                Make_Uncertianty_Libraries(
+                    directory, ASR_Statefile_Dict, Binary_Statefile_Dict, cutoff
+                )
+            except BaseException:
+                print("Reconstruction of ASR libraries failed.")
+                raise RuntimeError("Reconstruction of ASR libraries failed.")
