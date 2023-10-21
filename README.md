@@ -50,6 +50,11 @@ python3 APLASR.py ASR -i input.fasta
 
 The above line runs APLASR in ASR mode, with the input sequence in the file “input.fasta”. All other parameters are default.
 
+
+python3 APLASR.py ASR -i input.fasta -o outgroup.fasta
+
+The above line runs APLASR in ASR mode, with the input sequence in the file “input.fasta” and an outgroup sepcified in "outgroup.fasta". All other parameters are default.
+
  
 python3 APLASR.py ASR -i MRFPSIFTAVLFAASSALAAPVNTTTEDETAQIPAEAVIGYLDLEGDFDVAVLPFSNSTNNGLLFINTTIASIAAKEEGVSLDKREAEAWHWLQLKPGQPMYKREAEAEAWHWLQLKPGQPMYKREADAEAWHWLQLKPGQPMYKREADAEAWHWLQLKPGQPMY -n alpha_ASR
   
