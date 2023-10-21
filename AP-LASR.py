@@ -52,11 +52,12 @@ This software can run in one of four modes.
         option -i specifies the name of the input Fasta file, or can take a raw protein sequence. This is the only mandatory input.
         option -n specifies the name of the output directory. The default is "ASR".
         option -s specifies the desired maximum size of the final dataset of modern homologs. This allows users some control over the time AP-LASR will take to run, and the detail/quality of the ASR. The default is 500.
-        option --supplement will turn on supplementation at the provided similarity cutoff (entered as a decimal). If you do turn on supplementation, there is not a default value but we reccomend users specify something between 0.7 and 0.85. 
+        option --supplement will turn on supplementation at the provided similarity cutoff (entered as a decimal). If you do turn on supplementation, there is not a default value but we reccomend users specify something between 0.7 and 0.85.
         option -iqtree allows users to specify an executable for IQTree other than the default ("iqtree").
         option --cdhit allows users to specify an executable for CH-Hit other than the default ("cd-hit").
         option --mafft allows users to specify an executable for MAFFT other than the default ("mafft").
         option --MSI allows users to specify the number of times the function "Post_MAFFT_Processing" iterates over the raw alignment to generate the final dataset. Each iteation will remove a large number of sequences, more if the different input sequecnes are dissimilar. Default is 2.
+        option -o or --outgroup allows users to provide an outgroup via a FASTA file, which will be included in the final sequence alignment for tree rooting, etc.
      MakeFigures mode will generate figures from ASR data of a previous ASR run - specify the directory where the results of interest are stored.
         option -n specifies the name of the directory where the ASR results are stored. The default is "ASR".
      RemakeLibrareies mode will generate new combinatorial libraries from ancestral proteins of a previous ASR run with a specified threshold confidence. This will allow generation of a library with a different size than what was generated with the default threshold confidences. Specify the directory where the ASR results of interest are stored.
@@ -105,84 +106,87 @@ AA_to_Codon_Human = {
     'F': 'ttc', 'P': 'ccc', 'S': 'agc', 'T': 'acc', 'W': 'tgg',
     'Y': 'tac', 'V': 'gtc', ' stop ': 'tga'
 }
-# This dictionary provides the mixed-base code for every combination of 2-4 nucleic acids
+# This dictionary provides the mixed-base code for every combination of
+# 2-4 nucleic acids
 Mixed_Bases_lookup = {
-    'a':'a','c':'c','g':'g','t':'t',
+    'a': 'a', 'c': 'c', 'g': 'g', 't': 't',
 
-    'ag':'r', 'ga':'r',
-    'ct':'y', 'tc':'y',
-    'ac':'m', 'ca':'m',
-    'gt':'k', 'tg':'k',
-    'gc':'s', 'cg':'s',
-    'at':'w', 'ta':'w',
+    'ag': 'r', 'ga': 'r',
+    'ct': 'y', 'tc': 'y',
+    'ac': 'm', 'ca': 'm',
+    'gt': 'k', 'tg': 'k',
+    'gc': 's', 'cg': 's',
+    'at': 'w', 'ta': 'w',
 
-    'act':'h', 'atc':'h', 'cat':'h', 'cta':'h', 'tac':'h', 'tca':'h',
-    'gct':'b', 'gtc':'b', 'ctg':'b', 'cgt':'b', 'tgc':'b', 'tcg':'b',
-    'acg':'v', 'agc':'v', 'cag':'v', 'cga':'v', 'gca':'v', 'gac':'v',
-    'agt':'d', 'atg':'d', 'gat':'d', 'gta':'d', 'tga':'d', 'tag':'d',
+    'act': 'h', 'atc': 'h', 'cat': 'h', 'cta': 'h', 'tac': 'h', 'tca': 'h',
+    'gct': 'b', 'gtc': 'b', 'ctg': 'b', 'cgt': 'b', 'tgc': 'b', 'tcg': 'b',
+    'acg': 'v', 'agc': 'v', 'cag': 'v', 'cga': 'v', 'gca': 'v', 'gac': 'v',
+    'agt': 'd', 'atg': 'd', 'gat': 'd', 'gta': 'd', 'tga': 'd', 'tag': 'd',
 
-    'acgt':'n','actg':'n','agct':'n','agtc':'n','atcg':'n','atgc':'n',
-    'cagt':'n','catg':'n','gact':'n','gatc':'n','tacg':'n','tagc':'n',
-    'cgat':'n','ctag':'n','gcat':'n','gtac':'n','tcag':'n','tgac':'n',
-    'cgta':'n','ctga':'n','gcta':'n','gtca':'n','tcga':'n','tgca':'n'
-    }
-# This dictionary provides the best degenerate codon for every combination of two amino acids for Humans
-AA_Pair_lookup_Human = { 
-    'AC':'ksc', 'AD':'gmc', 'AE':'gma', 'AF':'kyc', 'AG':'gsc', 'AH':'smc', 'AI':'ryc', 'AK':'rma', 'AL':'syc', 'AM':'ryg', 'AN':'rmc', 'AP':'scc', 'AQ':'sma', 'AR':'rsa', 'AS':'kcc', 'AT':'rcc', 'AV':'gyc', 'AW':'ksg', 'AY':'kmc', 
-    'CA':'ksc', 'CD':'krc', 'CE':'krs', 'CF':'tkc', 'CG':'kgc', 'CH':'yrc', 'CI':'wkc', 'CK':'wrs', 'CL':'ykc', 'CM':'wks', 'CN':'wrc', 'CP':'ysc', 'CQ':'yrs', 'CR':'ygc', 'CS':'tsc', 'CT':'wsc', 'CV':'kkc', 'CW':'tgs', 'CY':'trc', 
-    'DA':'gmc', 'DC':'krc', 'DE':'gas', 'DF':'kwc', 'DG':'grc', 'DH':'sac', 'DI':'rwc', 'DK':'ras', 'DL':'swc', 'DM':'rws', 'DN':'rac', 'DP':'smc', 'DQ':'sas', 'DR':'src', 'DS':'rrc', 'DT':'rmc', 'DV':'gwc', 'DW':'krs', 'DY':'kac', 
-    'EA':'gma', 'EC':'krs', 'ED':'gas', 'EF':'kws', 'EG':'grg', 'EH':'sas', 'EI':'rwa', 'EK':'rag', 'EL':'swg', 'EM':'rwg', 'EN':'ras', 'EP':'smg', 'EQ':'sag', 'ER':'rrg', 'ES':'kmg', 'ET':'rmg', 'EV':'gwg', 'EW':'rrg', 'EY':'kas', 
-    'FA':'kyc', 'FC':'tkc', 'FD':'kwc', 'FE':'kws', 'FG':'kkc', 'FH':'ywc', 'FI':'wtc', 'FK':'wwm', 'FL':'ytc', 'FM':'wts', 'FN':'wwc', 'FP':'yyc', 'FQ':'yws', 'FR':'ykc', 'FS':'tyc', 'FT':'wyc', 'FV':'ktc', 'FW':'tks', 'FY':'twc', 
-    'GA':'gsc', 'GC':'kgc', 'GD':'grc', 'GE':'grg', 'GF':'kkc', 'GH':'src', 'GI':'rkc', 'GK':'rra', 'GL':'skc', 'GM':'rrg', 'GN':'rrc', 'GP':'ssc', 'GQ':'grg', 'GR':'sgg', 'GS':'rgc', 'GT':'rsc', 'GV':'gkc', 'GW':'kgg', 'GY':'krc', 
-    'HA':'smc', 'HC':'yrc', 'HD':'sac', 'HE':'sas', 'HF':'ywc', 'HG':'src', 'HI':'mwc', 'HK':'mas', 'HL':'cwc', 'HM':'mws', 'HN':'mac', 'HP':'cmc', 'HQ':'cas', 'HR':'crc', 'HS':'mrc', 'HT':'mmc', 'HV':'swc', 'HW':'yrs', 'HY':'yac', 
-    'IA':'ryc', 'IC':'wkc', 'ID':'rwc', 'IE':'rwa', 'IF':'wtc', 'IG':'rkc', 'IH':'mwc', 'IK':'awa', 'IL':'mtc', 'IM':'ats', 'IN':'awc', 'IP':'myc', 'IQ':'mya', 'IR':'aka', 'IS':'akc', 'IT':'ayc', 'IV':'rtc', 'IW':'wks', 'IY':'wwc', 
-    'KA':'rma', 'KC':'wrs', 'KD':'ras', 'KE':'rag', 'KF':'wwm', 'KG':'rra', 'KH':'mas', 'KI':'awa', 'KL':'mwa', 'KM':'awg', 'KN':'aas', 'KP':'mma', 'KQ':'maa', 'KR':'arg', 'KS':'ars', 'KT':'ama', 'KV':'rwa', 'KW':'wrg', 'KY':'was', 
-    'LA':'syc', 'LC':'ykc', 'LD':'swc', 'LE':'swg', 'LF':'ytc', 'LG':'skc', 'LH':'csc', 'LI':'mtc', 'LK':'mwa', 'LM':'mtg', 'LN':'mwc', 'LP':'cyc', 'LQ':'cyg', 'LR':'ckg', 'LS':'tyr', 'LT':'myc', 'LV':'stg', 'LW':'tkg', 'LY':'ywc', 
-    'MA':'ryg', 'MC':'wks', 'MD':'rws', 'ME':'rwg', 'MF':'wts', 'MG':'rrg', 'MH':'mws', 'MI':'ats', 'MK':'awg', 'ML':'mtg', 'MN':'aws', 'MP':'myg', 'MQ':'mwg', 'MR':'akg', 'MS':'aks', 'MT':'ayg', 'MV':'rtg', 'MW':'wkg', 'MY':'wws', 
-    'NA':'rmc', 'NC':'wrc', 'ND':'rac', 'NE':'ras', 'NF':'wwc', 'NG':'rrc', 'NH':'mac', 'NI':'awc', 'NK':'aas', 'NL':'mwc', 'NM':'aws', 'NP':'mmc', 'NQ':'mas', 'NR':'ars', 'NS':'arc', 'NT':'amc', 'NV':'rwc', 'NW':'wrs', 'NY':'wac', 
-    'PA':'scc', 'PC':'ysc', 'PD':'smc', 'PE':'smg', 'PF':'yyc', 'PG':'ssc', 'PH':'cmc', 'PI':'myc', 'PK':'mma', 'PL':'cyc', 'PM':'myg', 'PN':'mmc', 'PQ':'cmr', 'PR':'csc', 'PS':'ycc', 'PT':'mcc', 'PV':'syc', 'PW':'ysg', 'PY':'ymc', 
-    'QA':'sma', 'QC':'yrs', 'QD':'sas', 'QE':'sag', 'QF':'yws', 'QG':'grg', 'QH':'cas', 'QI':'mya', 'QK':'maa', 'QL':'cyg', 'QM':'mwg', 'QN':'mas', 'QP':'cmr', 'QR':'crg', 'QS':'yma', 'QT':'mma', 'QV':'swg', 'QW':'yrg', 'QY':'yas', 
-    'RA':'rsa', 'RC':'ygc', 'RD':'src', 'RE':'rrg', 'RF':'ykc', 'RG':'sgg', 'RH':'crc', 'RI':'aka', 'RK':'arg', 'RL':'ckg', 'RM':'akg', 'RN':'ars', 'RP':'csc', 'RQ':'crg', 'RS':'ags', 'RT':'asc', 'RV':'rkc', 'RW':'ygg', 'RY':'yrc', 
-    'SA':'kcc', 'SC':'tsc', 'SD':'rrc', 'SE':'kmg', 'SF':'tyc', 'SG':'rgc', 'SH':'mrc', 'SI':'akc', 'SK':'ars', 'SL':'tyr', 'SM':'aks', 'SN':'arc', 'SP':'ycc', 'SQ':'yma', 'SR':'ags', 'ST':'asc', 'SV':'kyc', 'SW':'tsg', 'SY':'tmc', 
-    'TA':'rcc', 'TC':'wsc', 'TD':'rmc', 'TE':'rmg', 'TF':'wyc', 'TG':'rsc', 'TH':'mmc', 'TI':'ayc', 'TK':'ama', 'TL':'myc', 'TM':'ayg', 'TN':'amc', 'TP':'mcc', 'TQ':'mma', 'TR':'asc', 'TS':'asc', 'TV':'ryc', 'TW':'wsg', 'TY':'wmc', 
-    'VA':'gyc', 'VC':'kkc', 'VD':'gwc', 'VE':'gwg', 'VF':'ktc', 'VG':'gkc', 'VH':'swc', 'VI':'rtc', 'VK':'rwa', 'VL':'stg', 'VM':'rtg', 'VN':'rwc', 'VP':'syc', 'VQ':'swg', 'VR':'rkc', 'VS':'kyc', 'VT':'ryc', 'VW':'kkg', 'VY':'kwc', 
-    'WA':'ksg', 'WC':'tgs', 'WD':'krs', 'WE':'rrg', 'WF':'tks', 'WG':'kgg', 'WH':'yrs', 'WI':'wks', 'WK':'wrg', 'WL':'tkg', 'WM':'wkg', 'WN':'wrs', 'WP':'ysg', 'WQ':'yrg', 'WR':'ygg', 'WS':'tsg', 'WT':'wsg', 'WV':'kkg', 'WY':'trs', 
-    'YA':'kmc', 'YC':'trc', 'YD':'kac', 'YE':'kas', 'YF':'twc', 'YG':'krc', 'YH':'yac', 'YI':'wwc', 'YK':'was', 'YL':'ywc', 'YM':'wws', 'YN':'wac', 'YP':'ymc', 'YQ':'yas', 'YR':'yrc', 'YS':'tmc', 'YT':'wmc', 'YV':'kwc', 'YW':'trs',
+    'acgt': 'n', 'actg': 'n', 'agct': 'n', 'agtc': 'n', 'atcg': 'n', 'atgc': 'n',
+    'cagt': 'n', 'catg': 'n', 'gact': 'n', 'gatc': 'n', 'tacg': 'n', 'tagc': 'n',
+    'cgat': 'n', 'ctag': 'n', 'gcat': 'n', 'gtac': 'n', 'tcag': 'n', 'tgac': 'n',
+    'cgta': 'n', 'ctga': 'n', 'gcta': 'n', 'gtca': 'n', 'tcga': 'n', 'tgca': 'n'
 }
-# This dictionary provides the best degenerate codon for every combination of two amino acids for EColi
-AA_Pair_lookup_EColi = { 
-    'AC':'ksc', 'AD':'gmc', 'AE':'gma', 'AF':'kyc', 'AG':'gsc', 'AH':'smc', 'AI':'ryc', 'AK':'rma', 'AL':'syc', 'AM':'ryg', 'AN':'rmc', 'AP':'scc', 'AQ':'sma', 'AR':'rsa', 'AS':'kcc', 'AT':'rcc', 'AV':'gyc', 'AW':'ksg', 'AY':'kmc', 
-    'CA':'ksc', 'CD':'krc', 'CE':'krs', 'CF':'tkc', 'CG':'kgc', 'CH':'yrc', 'CI':'wkc', 'CK':'wrs', 'CL':'ykc', 'CM':'wks', 'CN':'wrc', 'CP':'ysc', 'CQ':'yrs', 'CR':'ygc', 'CS':'tsc', 'CT':'wsc', 'CV':'kkc', 'CW':'tgs', 'CY':'trc', 
-    'DA':'gmc', 'DC':'krc', 'DE':'gas', 'DF':'kwc', 'DG':'grc', 'DH':'sac', 'DI':'rwc', 'DK':'ras', 'DL':'swc', 'DM':'rws', 'DN':'rac', 'DP':'smc', 'DQ':'sas', 'DR':'src', 'DS':'rrc', 'DT':'rmc', 'DV':'gwc', 'DW':'krs', 'DY':'kac', 
-    'EA':'gma', 'EC':'krs', 'ED':'gas', 'EF':'kws', 'EG':'grg', 'EH':'sas', 'EI':'rwa', 'EK':'rag', 'EL':'swg', 'EM':'rwg', 'EN':'ras', 'EP':'smg', 'EQ':'sag', 'ER':'rrg', 'ES':'kmg', 'ET':'rmg', 'EV':'gwg', 'EW':'rrg', 'EY':'kas', 
-    'FA':'kyc', 'FC':'tkc', 'FD':'kwc', 'FE':'kws', 'FG':'kkc', 'FH':'ywc', 'FI':'wtc', 'FK':'wwm', 'FL':'ytc', 'FM':'wts', 'FN':'wwc', 'FP':'yyc', 'FQ':'yws', 'FR':'ykc', 'FS':'tyc', 'FT':'wyc', 'FV':'ktc', 'FW':'tks', 'FY':'twc', 
-    'GA':'gsc', 'GC':'kgc', 'GD':'grc', 'GE':'grg', 'GF':'kkc', 'GH':'src', 'GI':'rkc', 'GK':'rra', 'GL':'skc', 'GM':'rrg', 'GN':'rrc', 'GP':'ssc', 'GQ':'grg', 'GR':'sgg', 'GS':'rgc', 'GT':'rsc', 'GV':'gkc', 'GW':'kgg', 'GY':'krc', 
-    'HA':'smc', 'HC':'yrc', 'HD':'sac', 'HE':'sas', 'HF':'ywc', 'HG':'src', 'HI':'mwc', 'HK':'mas', 'HL':'cwc', 'HM':'mws', 'HN':'mac', 'HP':'cmc', 'HQ':'cas', 'HR':'crc', 'HS':'mrc', 'HT':'mmc', 'HV':'swc', 'HW':'yrs', 'HY':'yac', 
-    'IA':'ryc', 'IC':'wkc', 'ID':'rwc', 'IE':'rwa', 'IF':'wtc', 'IG':'rkc', 'IH':'mwc', 'IK':'awa', 'IL':'mtc', 'IM':'ats', 'IN':'awc', 'IP':'myc', 'IQ':'mya', 'IR':'aka', 'IS':'akc', 'IT':'ayc', 'IV':'rtc', 'IW':'wks', 'IY':'wwc', 
-    'KA':'rma', 'KC':'wrs', 'KD':'ras', 'KE':'rag', 'KF':'wwm', 'KG':'rra', 'KH':'mas', 'KI':'awa', 'KL':'mwa', 'KM':'awg', 'KN':'aas', 'KP':'mma', 'KQ':'maa', 'KR':'arg', 'KS':'ars', 'KT':'ama', 'KV':'rwa', 'KW':'wrg', 'KY':'was', 
-    'LA':'syc', 'LC':'ykc', 'LD':'swc', 'LE':'swg', 'LF':'ytc', 'LG':'skc', 'LH':'csc', 'LI':'mtc', 'LK':'mwa', 'LM':'mtg', 'LN':'mwc', 'LP':'cyc', 'LQ':'cyg', 'LR':'ckg', 'LS':'tyr', 'LT':'myc', 'LV':'stg', 'LW':'tkg', 'LY':'ywc', 
-    'MA':'ryg', 'MC':'wks', 'MD':'rws', 'ME':'rwg', 'MF':'wts', 'MG':'rrg', 'MH':'mws', 'MI':'ats', 'MK':'awg', 'ML':'mtg', 'MN':'aws', 'MP':'myg', 'MQ':'mwg', 'MR':'akg', 'MS':'aks', 'MT':'ayg', 'MV':'rtg', 'MW':'wkg', 'MY':'wws', 
-    'NA':'rmc', 'NC':'wrc', 'ND':'rac', 'NE':'ras', 'NF':'wwc', 'NG':'rrc', 'NH':'mac', 'NI':'awc', 'NK':'aas', 'NL':'mwc', 'NM':'aws', 'NP':'mmc', 'NQ':'mas', 'NR':'ars', 'NS':'arc', 'NT':'amc', 'NV':'rwc', 'NW':'wrs', 'NY':'wac', 
-    'PA':'scc', 'PC':'ysc', 'PD':'smc', 'PE':'smg', 'PF':'yyc', 'PG':'ssc', 'PH':'cmc', 'PI':'myc', 'PK':'mma', 'PL':'cyc', 'PM':'myg', 'PN':'mmc', 'PQ':'cmr', 'PR':'csc', 'PS':'yct', 'PT':'mcc', 'PV':'syc', 'PW':'ysg', 'PY':'ymc', 
-    'QA':'sma', 'QC':'yrs', 'QD':'sas', 'QE':'sag', 'QF':'yws', 'QG':'grg', 'QH':'cas', 'QI':'mya', 'QK':'maa', 'QL':'cyg', 'QM':'mwg', 'QN':'mas', 'QP':'cmr', 'QR':'crg', 'QS':'yma', 'QT':'mma', 'QV':'swg', 'QW':'yrg', 'QY':'yas', 
-    'RA':'rsa', 'RC':'ygc', 'RD':'src', 'RE':'rrg', 'RF':'ykc', 'RG':'sgg', 'RH':'crc', 'RI':'aka', 'RK':'arg', 'RL':'ckg', 'RM':'akg', 'RN':'ars', 'RP':'csc', 'RQ':'crg', 'RS':'ags', 'RT':'asc', 'RV':'rkc', 'RW':'ygg', 'RY':'yrc', 
-    'SA':'kcc', 'SC':'tsc', 'SD':'rrc', 'SE':'kmg', 'SF':'tyc', 'SG':'rgc', 'SH':'mrc', 'SI':'akc', 'SK':'ars', 'SL':'tyr', 'SM':'aks', 'SN':'arc', 'SP':'yct', 'SQ':'yma', 'SR':'ags', 'ST':'asc', 'SV':'kyc', 'SW':'tsg', 'SY':'tmc', 
-    'TA':'rcc', 'TC':'wsc', 'TD':'rmc', 'TE':'rmg', 'TF':'wyc', 'TG':'rsc', 'TH':'mmc', 'TI':'ayc', 'TK':'ama', 'TL':'myc', 'TM':'ayg', 'TN':'amc', 'TP':'mcc', 'TQ':'mma', 'TR':'asc', 'TS':'asc', 'TV':'ryc', 'TW':'wsg', 'TY':'wmc', 
-    'VA':'gyc', 'VC':'kkc', 'VD':'gwc', 'VE':'gwg', 'VF':'ktc', 'VG':'gkc', 'VH':'swc', 'VI':'rtc', 'VK':'rwa', 'VL':'stg', 'VM':'rtg', 'VN':'rwc', 'VP':'syc', 'VQ':'swg', 'VR':'rkc', 'VS':'kyc', 'VT':'ryc', 'VW':'kkg', 'VY':'kwc', 
-    'WA':'ksg', 'WC':'tgs', 'WD':'krs', 'WE':'rrg', 'WF':'tks', 'WG':'kgg', 'WH':'yrs', 'WI':'wks', 'WK':'wrg', 'WL':'tkg', 'WM':'wkg', 'WN':'wrs', 'WP':'ysg', 'WQ':'yrg', 'WR':'ygg', 'WS':'tsg', 'WT':'wsg', 'WV':'kkg', 'WY':'trs', 
-    'YA':'kmc', 'YC':'trc', 'YD':'kac', 'YE':'kas', 'YF':'twc', 'YG':'krc', 'YH':'yac', 'YI':'wwc', 'YK':'was', 'YL':'ywc', 'YM':'wws', 'YN':'wac', 'YP':'ymc', 'YQ':'yas', 'YR':'yrc', 'YS':'tmc', 'YT':'wmc', 'YV':'kwc', 'YW':'trs',
+# This dictionary provides the best degenerate codon for every combination
+# of two amino acids for Humans
+AA_Pair_lookup_Human = {
+    'AC': 'ksc', 'AD': 'gmc', 'AE': 'gma', 'AF': 'kyc', 'AG': 'gsc', 'AH': 'smc', 'AI': 'ryc', 'AK': 'rma', 'AL': 'syc', 'AM': 'ryg', 'AN': 'rmc', 'AP': 'scc', 'AQ': 'sma', 'AR': 'rsa', 'AS': 'kcc', 'AT': 'rcc', 'AV': 'gyc', 'AW': 'ksg', 'AY': 'kmc',
+    'CA': 'ksc', 'CD': 'krc', 'CE': 'krs', 'CF': 'tkc', 'CG': 'kgc', 'CH': 'yrc', 'CI': 'wkc', 'CK': 'wrs', 'CL': 'ykc', 'CM': 'wks', 'CN': 'wrc', 'CP': 'ysc', 'CQ': 'yrs', 'CR': 'ygc', 'CS': 'tsc', 'CT': 'wsc', 'CV': 'kkc', 'CW': 'tgs', 'CY': 'trc',
+    'DA': 'gmc', 'DC': 'krc', 'DE': 'gas', 'DF': 'kwc', 'DG': 'grc', 'DH': 'sac', 'DI': 'rwc', 'DK': 'ras', 'DL': 'swc', 'DM': 'rws', 'DN': 'rac', 'DP': 'smc', 'DQ': 'sas', 'DR': 'src', 'DS': 'rrc', 'DT': 'rmc', 'DV': 'gwc', 'DW': 'krs', 'DY': 'kac',
+    'EA': 'gma', 'EC': 'krs', 'ED': 'gas', 'EF': 'kws', 'EG': 'grg', 'EH': 'sas', 'EI': 'rwa', 'EK': 'rag', 'EL': 'swg', 'EM': 'rwg', 'EN': 'ras', 'EP': 'smg', 'EQ': 'sag', 'ER': 'rrg', 'ES': 'kmg', 'ET': 'rmg', 'EV': 'gwg', 'EW': 'rrg', 'EY': 'kas',
+    'FA': 'kyc', 'FC': 'tkc', 'FD': 'kwc', 'FE': 'kws', 'FG': 'kkc', 'FH': 'ywc', 'FI': 'wtc', 'FK': 'wwm', 'FL': 'ytc', 'FM': 'wts', 'FN': 'wwc', 'FP': 'yyc', 'FQ': 'yws', 'FR': 'ykc', 'FS': 'tyc', 'FT': 'wyc', 'FV': 'ktc', 'FW': 'tks', 'FY': 'twc',
+    'GA': 'gsc', 'GC': 'kgc', 'GD': 'grc', 'GE': 'grg', 'GF': 'kkc', 'GH': 'src', 'GI': 'rkc', 'GK': 'rra', 'GL': 'skc', 'GM': 'rrg', 'GN': 'rrc', 'GP': 'ssc', 'GQ': 'grg', 'GR': 'sgg', 'GS': 'rgc', 'GT': 'rsc', 'GV': 'gkc', 'GW': 'kgg', 'GY': 'krc',
+    'HA': 'smc', 'HC': 'yrc', 'HD': 'sac', 'HE': 'sas', 'HF': 'ywc', 'HG': 'src', 'HI': 'mwc', 'HK': 'mas', 'HL': 'cwc', 'HM': 'mws', 'HN': 'mac', 'HP': 'cmc', 'HQ': 'cas', 'HR': 'crc', 'HS': 'mrc', 'HT': 'mmc', 'HV': 'swc', 'HW': 'yrs', 'HY': 'yac',
+    'IA': 'ryc', 'IC': 'wkc', 'ID': 'rwc', 'IE': 'rwa', 'IF': 'wtc', 'IG': 'rkc', 'IH': 'mwc', 'IK': 'awa', 'IL': 'mtc', 'IM': 'ats', 'IN': 'awc', 'IP': 'myc', 'IQ': 'mya', 'IR': 'aka', 'IS': 'akc', 'IT': 'ayc', 'IV': 'rtc', 'IW': 'wks', 'IY': 'wwc',
+    'KA': 'rma', 'KC': 'wrs', 'KD': 'ras', 'KE': 'rag', 'KF': 'wwm', 'KG': 'rra', 'KH': 'mas', 'KI': 'awa', 'KL': 'mwa', 'KM': 'awg', 'KN': 'aas', 'KP': 'mma', 'KQ': 'maa', 'KR': 'arg', 'KS': 'ars', 'KT': 'ama', 'KV': 'rwa', 'KW': 'wrg', 'KY': 'was',
+    'LA': 'syc', 'LC': 'ykc', 'LD': 'swc', 'LE': 'swg', 'LF': 'ytc', 'LG': 'skc', 'LH': 'csc', 'LI': 'mtc', 'LK': 'mwa', 'LM': 'mtg', 'LN': 'mwc', 'LP': 'cyc', 'LQ': 'cyg', 'LR': 'ckg', 'LS': 'tyr', 'LT': 'myc', 'LV': 'stg', 'LW': 'tkg', 'LY': 'ywc',
+    'MA': 'ryg', 'MC': 'wks', 'MD': 'rws', 'ME': 'rwg', 'MF': 'wts', 'MG': 'rrg', 'MH': 'mws', 'MI': 'ats', 'MK': 'awg', 'ML': 'mtg', 'MN': 'aws', 'MP': 'myg', 'MQ': 'mwg', 'MR': 'akg', 'MS': 'aks', 'MT': 'ayg', 'MV': 'rtg', 'MW': 'wkg', 'MY': 'wws',
+    'NA': 'rmc', 'NC': 'wrc', 'ND': 'rac', 'NE': 'ras', 'NF': 'wwc', 'NG': 'rrc', 'NH': 'mac', 'NI': 'awc', 'NK': 'aas', 'NL': 'mwc', 'NM': 'aws', 'NP': 'mmc', 'NQ': 'mas', 'NR': 'ars', 'NS': 'arc', 'NT': 'amc', 'NV': 'rwc', 'NW': 'wrs', 'NY': 'wac',
+    'PA': 'scc', 'PC': 'ysc', 'PD': 'smc', 'PE': 'smg', 'PF': 'yyc', 'PG': 'ssc', 'PH': 'cmc', 'PI': 'myc', 'PK': 'mma', 'PL': 'cyc', 'PM': 'myg', 'PN': 'mmc', 'PQ': 'cmr', 'PR': 'csc', 'PS': 'ycc', 'PT': 'mcc', 'PV': 'syc', 'PW': 'ysg', 'PY': 'ymc',
+    'QA': 'sma', 'QC': 'yrs', 'QD': 'sas', 'QE': 'sag', 'QF': 'yws', 'QG': 'grg', 'QH': 'cas', 'QI': 'mya', 'QK': 'maa', 'QL': 'cyg', 'QM': 'mwg', 'QN': 'mas', 'QP': 'cmr', 'QR': 'crg', 'QS': 'yma', 'QT': 'mma', 'QV': 'swg', 'QW': 'yrg', 'QY': 'yas',
+    'RA': 'rsa', 'RC': 'ygc', 'RD': 'src', 'RE': 'rrg', 'RF': 'ykc', 'RG': 'sgg', 'RH': 'crc', 'RI': 'aka', 'RK': 'arg', 'RL': 'ckg', 'RM': 'akg', 'RN': 'ars', 'RP': 'csc', 'RQ': 'crg', 'RS': 'ags', 'RT': 'asc', 'RV': 'rkc', 'RW': 'ygg', 'RY': 'yrc',
+    'SA': 'kcc', 'SC': 'tsc', 'SD': 'rrc', 'SE': 'kmg', 'SF': 'tyc', 'SG': 'rgc', 'SH': 'mrc', 'SI': 'akc', 'SK': 'ars', 'SL': 'tyr', 'SM': 'aks', 'SN': 'arc', 'SP': 'ycc', 'SQ': 'yma', 'SR': 'ags', 'ST': 'asc', 'SV': 'kyc', 'SW': 'tsg', 'SY': 'tmc',
+    'TA': 'rcc', 'TC': 'wsc', 'TD': 'rmc', 'TE': 'rmg', 'TF': 'wyc', 'TG': 'rsc', 'TH': 'mmc', 'TI': 'ayc', 'TK': 'ama', 'TL': 'myc', 'TM': 'ayg', 'TN': 'amc', 'TP': 'mcc', 'TQ': 'mma', 'TR': 'asc', 'TS': 'asc', 'TV': 'ryc', 'TW': 'wsg', 'TY': 'wmc',
+    'VA': 'gyc', 'VC': 'kkc', 'VD': 'gwc', 'VE': 'gwg', 'VF': 'ktc', 'VG': 'gkc', 'VH': 'swc', 'VI': 'rtc', 'VK': 'rwa', 'VL': 'stg', 'VM': 'rtg', 'VN': 'rwc', 'VP': 'syc', 'VQ': 'swg', 'VR': 'rkc', 'VS': 'kyc', 'VT': 'ryc', 'VW': 'kkg', 'VY': 'kwc',
+    'WA': 'ksg', 'WC': 'tgs', 'WD': 'krs', 'WE': 'rrg', 'WF': 'tks', 'WG': 'kgg', 'WH': 'yrs', 'WI': 'wks', 'WK': 'wrg', 'WL': 'tkg', 'WM': 'wkg', 'WN': 'wrs', 'WP': 'ysg', 'WQ': 'yrg', 'WR': 'ygg', 'WS': 'tsg', 'WT': 'wsg', 'WV': 'kkg', 'WY': 'trs',
+    'YA': 'kmc', 'YC': 'trc', 'YD': 'kac', 'YE': 'kas', 'YF': 'twc', 'YG': 'krc', 'YH': 'yac', 'YI': 'wwc', 'YK': 'was', 'YL': 'ywc', 'YM': 'wws', 'YN': 'wac', 'YP': 'ymc', 'YQ': 'yas', 'YR': 'yrc', 'YS': 'tmc', 'YT': 'wmc', 'YV': 'kwc', 'YW': 'trs',
+}
+# This dictionary provides the best degenerate codon for every combination
+# of two amino acids for EColi
+AA_Pair_lookup_EColi = {
+    'AC': 'ksc', 'AD': 'gmc', 'AE': 'gma', 'AF': 'kyc', 'AG': 'gsc', 'AH': 'smc', 'AI': 'ryc', 'AK': 'rma', 'AL': 'syc', 'AM': 'ryg', 'AN': 'rmc', 'AP': 'scc', 'AQ': 'sma', 'AR': 'rsa', 'AS': 'kcc', 'AT': 'rcc', 'AV': 'gyc', 'AW': 'ksg', 'AY': 'kmc',
+    'CA': 'ksc', 'CD': 'krc', 'CE': 'krs', 'CF': 'tkc', 'CG': 'kgc', 'CH': 'yrc', 'CI': 'wkc', 'CK': 'wrs', 'CL': 'ykc', 'CM': 'wks', 'CN': 'wrc', 'CP': 'ysc', 'CQ': 'yrs', 'CR': 'ygc', 'CS': 'tsc', 'CT': 'wsc', 'CV': 'kkc', 'CW': 'tgs', 'CY': 'trc',
+    'DA': 'gmc', 'DC': 'krc', 'DE': 'gas', 'DF': 'kwc', 'DG': 'grc', 'DH': 'sac', 'DI': 'rwc', 'DK': 'ras', 'DL': 'swc', 'DM': 'rws', 'DN': 'rac', 'DP': 'smc', 'DQ': 'sas', 'DR': 'src', 'DS': 'rrc', 'DT': 'rmc', 'DV': 'gwc', 'DW': 'krs', 'DY': 'kac',
+    'EA': 'gma', 'EC': 'krs', 'ED': 'gas', 'EF': 'kws', 'EG': 'grg', 'EH': 'sas', 'EI': 'rwa', 'EK': 'rag', 'EL': 'swg', 'EM': 'rwg', 'EN': 'ras', 'EP': 'smg', 'EQ': 'sag', 'ER': 'rrg', 'ES': 'kmg', 'ET': 'rmg', 'EV': 'gwg', 'EW': 'rrg', 'EY': 'kas',
+    'FA': 'kyc', 'FC': 'tkc', 'FD': 'kwc', 'FE': 'kws', 'FG': 'kkc', 'FH': 'ywc', 'FI': 'wtc', 'FK': 'wwm', 'FL': 'ytc', 'FM': 'wts', 'FN': 'wwc', 'FP': 'yyc', 'FQ': 'yws', 'FR': 'ykc', 'FS': 'tyc', 'FT': 'wyc', 'FV': 'ktc', 'FW': 'tks', 'FY': 'twc',
+    'GA': 'gsc', 'GC': 'kgc', 'GD': 'grc', 'GE': 'grg', 'GF': 'kkc', 'GH': 'src', 'GI': 'rkc', 'GK': 'rra', 'GL': 'skc', 'GM': 'rrg', 'GN': 'rrc', 'GP': 'ssc', 'GQ': 'grg', 'GR': 'sgg', 'GS': 'rgc', 'GT': 'rsc', 'GV': 'gkc', 'GW': 'kgg', 'GY': 'krc',
+    'HA': 'smc', 'HC': 'yrc', 'HD': 'sac', 'HE': 'sas', 'HF': 'ywc', 'HG': 'src', 'HI': 'mwc', 'HK': 'mas', 'HL': 'cwc', 'HM': 'mws', 'HN': 'mac', 'HP': 'cmc', 'HQ': 'cas', 'HR': 'crc', 'HS': 'mrc', 'HT': 'mmc', 'HV': 'swc', 'HW': 'yrs', 'HY': 'yac',
+    'IA': 'ryc', 'IC': 'wkc', 'ID': 'rwc', 'IE': 'rwa', 'IF': 'wtc', 'IG': 'rkc', 'IH': 'mwc', 'IK': 'awa', 'IL': 'mtc', 'IM': 'ats', 'IN': 'awc', 'IP': 'myc', 'IQ': 'mya', 'IR': 'aka', 'IS': 'akc', 'IT': 'ayc', 'IV': 'rtc', 'IW': 'wks', 'IY': 'wwc',
+    'KA': 'rma', 'KC': 'wrs', 'KD': 'ras', 'KE': 'rag', 'KF': 'wwm', 'KG': 'rra', 'KH': 'mas', 'KI': 'awa', 'KL': 'mwa', 'KM': 'awg', 'KN': 'aas', 'KP': 'mma', 'KQ': 'maa', 'KR': 'arg', 'KS': 'ars', 'KT': 'ama', 'KV': 'rwa', 'KW': 'wrg', 'KY': 'was',
+    'LA': 'syc', 'LC': 'ykc', 'LD': 'swc', 'LE': 'swg', 'LF': 'ytc', 'LG': 'skc', 'LH': 'csc', 'LI': 'mtc', 'LK': 'mwa', 'LM': 'mtg', 'LN': 'mwc', 'LP': 'cyc', 'LQ': 'cyg', 'LR': 'ckg', 'LS': 'tyr', 'LT': 'myc', 'LV': 'stg', 'LW': 'tkg', 'LY': 'ywc',
+    'MA': 'ryg', 'MC': 'wks', 'MD': 'rws', 'ME': 'rwg', 'MF': 'wts', 'MG': 'rrg', 'MH': 'mws', 'MI': 'ats', 'MK': 'awg', 'ML': 'mtg', 'MN': 'aws', 'MP': 'myg', 'MQ': 'mwg', 'MR': 'akg', 'MS': 'aks', 'MT': 'ayg', 'MV': 'rtg', 'MW': 'wkg', 'MY': 'wws',
+    'NA': 'rmc', 'NC': 'wrc', 'ND': 'rac', 'NE': 'ras', 'NF': 'wwc', 'NG': 'rrc', 'NH': 'mac', 'NI': 'awc', 'NK': 'aas', 'NL': 'mwc', 'NM': 'aws', 'NP': 'mmc', 'NQ': 'mas', 'NR': 'ars', 'NS': 'arc', 'NT': 'amc', 'NV': 'rwc', 'NW': 'wrs', 'NY': 'wac',
+    'PA': 'scc', 'PC': 'ysc', 'PD': 'smc', 'PE': 'smg', 'PF': 'yyc', 'PG': 'ssc', 'PH': 'cmc', 'PI': 'myc', 'PK': 'mma', 'PL': 'cyc', 'PM': 'myg', 'PN': 'mmc', 'PQ': 'cmr', 'PR': 'csc', 'PS': 'yct', 'PT': 'mcc', 'PV': 'syc', 'PW': 'ysg', 'PY': 'ymc',
+    'QA': 'sma', 'QC': 'yrs', 'QD': 'sas', 'QE': 'sag', 'QF': 'yws', 'QG': 'grg', 'QH': 'cas', 'QI': 'mya', 'QK': 'maa', 'QL': 'cyg', 'QM': 'mwg', 'QN': 'mas', 'QP': 'cmr', 'QR': 'crg', 'QS': 'yma', 'QT': 'mma', 'QV': 'swg', 'QW': 'yrg', 'QY': 'yas',
+    'RA': 'rsa', 'RC': 'ygc', 'RD': 'src', 'RE': 'rrg', 'RF': 'ykc', 'RG': 'sgg', 'RH': 'crc', 'RI': 'aka', 'RK': 'arg', 'RL': 'ckg', 'RM': 'akg', 'RN': 'ars', 'RP': 'csc', 'RQ': 'crg', 'RS': 'ags', 'RT': 'asc', 'RV': 'rkc', 'RW': 'ygg', 'RY': 'yrc',
+    'SA': 'kcc', 'SC': 'tsc', 'SD': 'rrc', 'SE': 'kmg', 'SF': 'tyc', 'SG': 'rgc', 'SH': 'mrc', 'SI': 'akc', 'SK': 'ars', 'SL': 'tyr', 'SM': 'aks', 'SN': 'arc', 'SP': 'yct', 'SQ': 'yma', 'SR': 'ags', 'ST': 'asc', 'SV': 'kyc', 'SW': 'tsg', 'SY': 'tmc',
+    'TA': 'rcc', 'TC': 'wsc', 'TD': 'rmc', 'TE': 'rmg', 'TF': 'wyc', 'TG': 'rsc', 'TH': 'mmc', 'TI': 'ayc', 'TK': 'ama', 'TL': 'myc', 'TM': 'ayg', 'TN': 'amc', 'TP': 'mcc', 'TQ': 'mma', 'TR': 'asc', 'TS': 'asc', 'TV': 'ryc', 'TW': 'wsg', 'TY': 'wmc',
+    'VA': 'gyc', 'VC': 'kkc', 'VD': 'gwc', 'VE': 'gwg', 'VF': 'ktc', 'VG': 'gkc', 'VH': 'swc', 'VI': 'rtc', 'VK': 'rwa', 'VL': 'stg', 'VM': 'rtg', 'VN': 'rwc', 'VP': 'syc', 'VQ': 'swg', 'VR': 'rkc', 'VS': 'kyc', 'VT': 'ryc', 'VW': 'kkg', 'VY': 'kwc',
+    'WA': 'ksg', 'WC': 'tgs', 'WD': 'krs', 'WE': 'rrg', 'WF': 'tks', 'WG': 'kgg', 'WH': 'yrs', 'WI': 'wks', 'WK': 'wrg', 'WL': 'tkg', 'WM': 'wkg', 'WN': 'wrs', 'WP': 'ysg', 'WQ': 'yrg', 'WR': 'ygg', 'WS': 'tsg', 'WT': 'wsg', 'WV': 'kkg', 'WY': 'trs',
+    'YA': 'kmc', 'YC': 'trc', 'YD': 'kac', 'YE': 'kas', 'YF': 'twc', 'YG': 'krc', 'YH': 'yac', 'YI': 'wwc', 'YK': 'was', 'YL': 'ywc', 'YM': 'wws', 'YN': 'wac', 'YP': 'ymc', 'YQ': 'yas', 'YR': 'yrc', 'YS': 'tmc', 'YT': 'wmc', 'YV': 'kwc', 'YW': 'trs',
 }
 # A reverse lookup for degerate bases
 Degenerate_Base_lookup = {
-    'a': 'a', 'c': 'c','g': 'g','t': 't',
-    'r': 'ag','y': 'ct','m': 'ac','k': 'gt','s': 'cg','w': 'at',
-    'h': 'act','b': 'cgt','v': 'acg','d': 'agt',
+    'a': 'a', 'c': 'c', 'g': 'g', 't': 't',
+    'r': 'ag', 'y': 'ct', 'm': 'ac', 'k': 'gt', 's': 'cg', 'w': 'at',
+    'h': 'act', 'b': 'cgt', 'v': 'acg', 'd': 'agt',
     'n': 'acgt'
-    }
+}
 # An amino-acid key for IQ-Tree *.state files.
 AA_key = [
-    'A','R','N','D','C','Q','E','G','H','I','L','K','M','F','P','S','T','W','Y','V'
-    ]
+    'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'
+]
 
 
 # Reads in fasta file and renames certain sequences based on forbidden
@@ -263,8 +267,16 @@ def Is_Valid_Codon(codon):  # Is the argurment a valid codon
         return all(((len(c) == 3) and all(i in dna_leters for i in c))
                    for c in codon)
 
+# This function removes all the gaps from all the seqeucnes in a dictionary
+
+
+def Strike_Gaps_Dict(fasta_dict):
+    for key, item in fasta_dict.items():
+        fasta_dict.update({key: item.replace('-', '')})
 
 # Interact with BlastP, and record the XML
+
+
 def NCBI_to_XML(dirname, sequence, hits=2000, expect_value=0.30, seq_name=''):
     # For the given sequence, we will run a BlastP search and parse the XML
     # return to make a multi-fasta file
@@ -302,20 +314,13 @@ def Parse_BlastP_XML(dirname, blastp_xml, sequence, sequence_name=None):
                         hit.find('Hit_accession')).text.replace(
                         ".", "_")
                     seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
-                    # If the sequence doesn't have unknowns amino acids (annoying) then record it.
-                    # The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
-                    # if (("X" not in seq) and
-                    # (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and
-                    # (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
+                    # If the sequence doesn't have unknowns amino acids
+                    # (annoying) then record it.
                     if ("X" not in seq):
                         fout.write(f"{hitid},{hitdef},{seq}\n")
                         Fasta_Dict[hitaccession] = seq
             with open(f"{dirname}/{return_name}", "a+") as blastp_file:
                 for key, F_D_Sequence in Fasta_Dict.items():
-                    # if
-                    # (len(Sequence)<((1+length_cutoff)*User_Sequence_Length))
-                    # and
-                    # (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
                     if len(F_D_Sequence) > 0.5 * len(sequence) and len(F_D_Sequence) < 1.5 * \
                             len(sequence) and Is_Valid_AA(F_D_Sequence):
                         # We remove all gaps, because CD-Hit cannot handle
@@ -344,12 +349,8 @@ def Parse_BlastP_XML(dirname, blastp_xml, sequence, sequence_name=None):
                             hit.find('Hit_accession')).text.replace(
                             ".", "_")
                         seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
-                        # If the sequence doesn't have unknowns amino acids (annoying) then record it.
-                        # The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
-                        # if (("X" not in seq) and
-                        # (len(seq)<((1+length_cutoff)*User_Sequence_Length))
-                        # and
-                        # (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
+                        # If the sequence doesn't have unknowns amino acids
+                        # (annoying) then record it.
                         if ("X" not in seq):
                             fout.write(f"{hitid},{hitdef},{seq}\n")
                             Fasta_Dict[hitaccession] = seq
@@ -359,10 +360,6 @@ def Parse_BlastP_XML(dirname, blastp_xml, sequence, sequence_name=None):
                         Fasta_Dict.update({key: seq})
                 with open(f"{dirname}/{return_name}", "a+") as blastp_file:
                     for key, F_D_Sequence in Fasta_Dict.items():
-                        # if
-                        # (len(Sequence)<((1+length_cutoff)*User_Sequence_Length))
-                        # and
-                        # (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
                         if len(F_D_Sequence) < 10000 and len(
                                 F_D_Sequence) > 10 and Is_Valid_AA(F_D_Sequence):
                             # We remove all gaps, because CD-Hit cannot handle
@@ -388,11 +385,8 @@ def Parse_BlastP_XML(dirname, blastp_xml, sequence, sequence_name=None):
                     hit.find('Hit_accession')).text.replace(
                     ".", "_")
                 seq = (hit.find('Hit_hsps/Hsp/Hsp_hseq')).text
-                # If the sequence doesn't have unknowns amino acids (annoying) then record it.
-                # The optional second method also removes exceptionally short or long sequences - be sure to synch with the code ~13 lines below
-                # if (("X" not in seq) and
-                # (len(seq)<((1+length_cutoff)*User_Sequence_Length)) and
-                # (len(seq)>((1-length_cutoff)*User_Sequence_Length))):
+                # If the sequence doesn't have unknowns amino acids (annoying)
+                # then record it.
                 if ("X" not in seq):
                     fout.write(f"{hitid},{hitdef},{seq}\n")
                     Fasta_Dict[hitaccession] = seq
@@ -402,10 +396,6 @@ def Parse_BlastP_XML(dirname, blastp_xml, sequence, sequence_name=None):
             blastp_file.write(f">{sequence_name}\n{sequence}\n")
             for key, F_D_Sequence in Fasta_Dict.items():
                 if Is_Valid_AA(F_D_Sequence):
-                    # if
-                    # (len(Sequence)<((1+length_cutoff)*User_Sequence_Length))
-                    # and
-                    # (len(Sequence)>((1-length_cutoff)*User_Sequence_Length)):
                     # We remove all gaps, because CD-Hit cannot handle gaps.
                     blastp_file.write(
                         f">{key}\n{F_D_Sequence.replace('-','')}\n")
@@ -506,7 +496,7 @@ def BlastP(dirname, sequence, hits=2000, expect_value=0.2, sequence_name=None):
         raise RuntimeError("There was an error recording the BlastP Results")
 
 
-def Sequence_Processing(dirname, finname, sequence):
+def Sequence_Processing(dirname, finname, sequence, outgroup):
     Fasta_Dict = {}
     if isinstance(sequence, dict):
         with open(f"{dirname}/{finname}", 'a') as fin:
@@ -529,7 +519,7 @@ def Sequence_Processing(dirname, finname, sequence):
             # If a given sequence has less than 50% similarity with the user
             # sequence, remove it.
             if (item / len(Fasta_Dict["User_Sequence"])
-                    ) > 0.5 and key != "User_Sequence":
+                ) > 0.5 and key != "User_Sequence":
                 Fasta_Dict.pop(key)
     for key, item in Fasta_Dict.items():
         # We now need to remove all the gaps in all the sequences to use CD-Hit
@@ -559,6 +549,23 @@ def Sequence_Processing(dirname, finname, sequence):
             dirname, Fasta_Dict_Aligned, user_seq_name)
     else:  # If only one
         return_name = Post_MAFFT_processing(dirname, Fasta_Dict_Aligned, False)
+    if outgroup is not None:  # Now we add the outgroup - this requires re-alignment with the outgroup
+        # Get a dictionary of our 'final sequences'
+        Final_Seqs_dict = fasta2dict(f"{dirname}/{return_name}")
+        # Clean out all the gaps
+        Strike_Gaps_Dict(Final_Seqs_dict)
+        Strike_Gaps_Dict(outgroup)
+        # Append the two, then align them
+        Final_Seqs_dict.update(outgroup)
+        os.remove(f"{dirname}/{return_name}")
+        dict2fasta(Final_Seqs_dict, f"{dirname}/TEMP.fasta")
+        try:
+            os.system(
+                f"{MAFFT_Executable} {dirname}/TEMP.fasta > {dirname}/{return_name}")
+        except BaseException:
+            raise RuntimeError("There was an error running MAFFT.")
+        # Clean up our mess so no one knows we were even here...
+        os.remove(f"{dirname}/TEMP.fasta")
     return return_name
 
 
@@ -1375,7 +1382,10 @@ def Make_Uncertianty_Libraries(
             fout.write(
                 f"{Cutoff*100}% Confidence threshold library,{','.join(row_list)},\n")
 
-# Make a library that is AltAll as described by https://doi.org/10.1093/molbev/msw223
+# Make a library that is AltAll as described by
+# https://doi.org/10.1093/molbev/msw223
+
+
 def Alt_All_Library(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
     if not (os.path.isdir(f"{dirname}/DNA_Libraries")):  # Make directory
         os.mkdir(f"{dirname}/DNA_Libraries")
@@ -1402,6 +1412,7 @@ def Alt_All_Library(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
     with open(f"{dirname}/DNA_Libraries/Alt_All_Library.fasta", "a+") as fout:
         for node, seq in Alternate_Ancestors.items():
             fout.write(f">{node}\n{seq}\n")
+
 
 def Write_Confidences(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
     nodes_data = {}
@@ -1493,7 +1504,8 @@ def seq_heatmap(Seqs, fname, n_col=50):  # Written by Patrick Finneran
                          xticklabels=False,
                          vmin=0,
                          vmax=1,
-                         annot=df_Seqs[df_Seqs.columns[i * n_col:(i + 1) * n_col]],
+                         annot=df_Seqs[df_Seqs.columns[i *
+                                                       n_col:(i + 1) * n_col]],
                          fmt='',
                          ax=ax[i],
                          cbar=False,
@@ -1577,6 +1589,13 @@ if __name__ == '__main__':
         type=float,
         help='supplementation is needed when dataset diversity must be improved. We reccomend beginning with a value of 75%.')
     parser_mode2.add_argument(
+        "-o",
+        "--outgroup",
+        action="store",
+        dest="outgroup",
+        help="Optional: outgroup seqeucnes input as the full FASTA file name",
+    )
+    parser_mode2.add_argument(
         '--cdhit',
         action='store',
         dest='cdhitexe',
@@ -1655,9 +1674,9 @@ if __name__ == '__main__':
         IQTREE_Executable = args.iqtreeexe
         Final_Dataset_Size = args.FinalDatasetSize
         multisequence_iterations = args.multisequence_iterations
-        if not (Final_Dataset_Size > 50):
-            print("User provided value for the final dataset size was too small. Preceding with a final dataset size of 60 sequences.")
-            Final_Dataset_Size = 60
+        if not (Final_Dataset_Size >= 50):
+            print("User provided value for the final dataset size was too small. Preceding with a final dataset size of 50 sequences.")
+            Final_Dataset_Size = 50
         if args.supplementationCutoff is not None:
             if (100 > args.supplementationCutoff > 40):
                 print(
@@ -1671,18 +1690,28 @@ if __name__ == '__main__':
                     "User provided value for the supplementation cutoff was outside the valid range. Please specify a value between 90% and 40%.")
         else:
             supplement_Cutoff = 0
-        if '.' not in args.input:
+        if (os.path.exists(f"{directory}/Final_Sequences.fasta")):
+            print(
+                f"Previously completed BalstP search and dataset curation detected. Proceding with {directory}/Final_Sequences.fasta to IQTree reconstruction.")
+            Final_Name = "Final_Sequences.fasta"
+        elif '.' not in args.input:
             sequence = args.input.upper().replace("-", '')
             if any([True for n in sequence if n not in AA_key]):
                 raise ValueError(
                     "Sequence option read as raw sequence - The provided sequence could not be used. Please be sure no amino acids are \'X\'")
             Blastp_out_name = BlastP(directory, sequence)
-            Final_Name = Sequence_Processing(
-                directory, Blastp_out_name, sequence)
-        elif (os.path.exists(f"{directory}/Final_Sequences.fasta")):
-            print(
-                f"Previously completed BalstP search and dataset curation detected. Proceding with {directory}/Final_Sequences.fasta to IQTree reconstruction.")
-            Final_Name = "Final_Sequences.fasta"
+            if args.outgroup is not None:
+                try:
+                    outgroup_file = args.outgroup
+                    outgroup_fasta_dict = fasta2dict(outgroup_file)
+                except BaseException:
+                    raise ValueError(
+                        "The outgroup file could not be read as a fasta file.")
+                Final_Name = Sequence_Processing(
+                    directory, Blastp_out_name, sequence, outgroup_fasta_dict)
+            else:
+                Final_Name = Sequence_Processing(
+                    directory, Blastp_out_name, sequence, None)
         else:
             if not (os.path.exists(args.input)):
                 raise ValueError(
@@ -1702,8 +1731,18 @@ if __name__ == '__main__':
                 print(
                     "Detected input fasta contained multiple sequences. This is an acceptable input, but is more prone to errors.")
             Blastp_out_name = BlastP(directory, User_Input_Sequence)
-            Final_Name = Sequence_Processing(
-                directory, Blastp_out_name, User_Input_Sequence)
+            if args.outgroup is not None:
+                try:
+                    outgroup_file = args.outgroup
+                    outgroup_fasta_dict = fasta2dict(outgroup_file)
+                except BaseException:
+                    raise ValueError(
+                        "The outgroup file could not be read as a fasta file.")
+                Final_Name = Sequence_Processing(
+                    directory, Blastp_out_name, User_Input_Sequence, outgroup_fasta_dict)
+            else:
+                Final_Name = Sequence_Processing(
+                    directory, Blastp_out_name, User_Input_Sequence, None)
         with open(f"{directory}/{Final_Name}") as fin:
             if len(fin.readlines()) < 80:
                 print("WARNING: There are very few sequences in the final sequence alignment. This can indicate many highly similar sequences were returned from BlastP or that there are not many sequences available.")
@@ -1788,7 +1827,8 @@ if __name__ == '__main__':
                     directory, ASR_Statefile_Dict, Binary_Statefile_Dict)
             except BaseException:
                 print("Reconstruction of ASR ALt-All libraries failed.")
-                raise RuntimeError("Reconstruction of ASR ALt-All libraries failed.")
+                raise RuntimeError(
+                    "Reconstruction of ASR ALt-All libraries failed.")
         else:
             if 100 > args.threshold > 50:
                 print(
