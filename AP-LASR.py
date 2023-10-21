@@ -61,7 +61,8 @@ This software can run in one of four modes.
         option -n specifies the name of the directory where the ASR results are stored. The default is "ASR".
      RemakeLibrareies mode will generate new combinatorial libraries from ancestral proteins of a previous ASR run with a specified threshold confidence. This will allow generation of a library with a different size than what was generated with the default threshold confidences. Specify the directory where the ASR results of interest are stored.
         option -n specifies the name of the directory where the ASR results are stored. The default is "ASR".
-        option -t specifies the new threshold, expressed as a decimal. 
+        option -t specifies the new threshold, expressed as a decimal.
+        option -A or --AltAll will make libraries in an "Alt-All" mode, which gives one highly mutated alternative seqeucne for each ancestor. No threshold should be specified if this mode is used.
 Entering just the option "--help" or "-h" will give a less verbose version this description. '''
 
 Software_Prerequistes = '''This AP-LASR script makes use of external software, which must be set up before it can be used. See the GitHub page for this project (github.com/jjvanantwerp/Automated-ASR) for download links.
