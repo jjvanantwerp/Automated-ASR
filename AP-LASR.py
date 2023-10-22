@@ -268,15 +268,11 @@ def Is_Valid_Codon(codon):  # Is the argurment a valid codon
                    for c in codon)
 
 # This function removes all the gaps from all the seqeucnes in a dictionary
-
-
 def Strike_Gaps_Dict(fasta_dict):
     for key, item in fasta_dict.items():
         fasta_dict.update({key: item.replace('-', '')})
 
 # Interact with BlastP, and record the XML
-
-
 def NCBI_to_XML(dirname, sequence, hits=2000, expect_value=0.30, seq_name=''):
     # For the given sequence, we will run a BlastP search and parse the XML
     # return to make a multi-fasta file
@@ -545,18 +541,20 @@ def Sequence_Processing(dirname, finname, sequence, outgroup):
         # ready for IQTree
         user_seq_name = [name for name in sequence.keys(
         ) if name in Fasta_Dict_Aligned.keys()][0]
-        return_name = Post_MAFFT_processing(
+        return_name = Post_MAFFT_Processing(
             dirname, Fasta_Dict_Aligned, user_seq_name)
     else:  # If only one
-        return_name = Post_MAFFT_processing(dirname, Fasta_Dict_Aligned, False)
+        return_name = Post_MAFFT_Processing(dirname, Fasta_Dict_Aligned, False)
     if outgroup is not None:  # Now we add the outgroup - this requires re-alignment with the outgroup
         # Get a dictionary of our 'final sequences'
+        outgroup_dict=fasta2dict(outgroup)
         Final_Seqs_dict = fasta2dict(f"{dirname}/{return_name}")
         # Clean out all the gaps
         Strike_Gaps_Dict(Final_Seqs_dict)
-        Strike_Gaps_Dict(outgroup)
+        Strike_Gaps_Dict(outgroup_dict)
         # Append the two, then align them
-        Final_Seqs_dict.update(outgroup)
+        for key,item in outgroup_dict.items():
+            Final_Seqs_dict[key.replace('.','_')]=item
         os.remove(f"{dirname}/{return_name}")
         dict2fasta(Final_Seqs_dict, f"{dirname}/TEMP.fasta")
         try:
@@ -565,7 +563,7 @@ def Sequence_Processing(dirname, finname, sequence, outgroup):
         except BaseException:
             raise RuntimeError("There was an error running MAFFT.")
         # Clean up our mess so no one knows we were even here...
-        os.remove(f"{dirname}/TEMP.fasta")
+        #os.remove(f"{dirname}/TEMP.fasta")
     return return_name
 
 
@@ -818,7 +816,7 @@ def Clean_all_gaps(fasta_dict):
 
 
 # Modifications after the alignment, mostly having to do with gaps.
-def Post_MAFFT_processing(
+def Post_MAFFT_Processing(
         dirname,
         fasta_dict,
         multisequence,
@@ -1384,8 +1382,6 @@ def Make_Uncertianty_Libraries(
 
 # Make a library that is AltAll as described by
 # https://doi.org/10.1093/molbev/msw223
-
-
 def Alt_All_Library(dirname, ASR_Statefile_Dict, Binary_Statefile_Dict):
     if not (os.path.isdir(f"{dirname}/DNA_Libraries")):  # Make directory
         os.mkdir(f"{dirname}/DNA_Libraries")
@@ -1703,15 +1699,13 @@ if __name__ == '__main__':
             if args.outgroup is not None:
                 try:
                     outgroup_file = args.outgroup
-                    outgroup_fasta_dict = fasta2dict(outgroup_file)
                 except BaseException:
                     raise ValueError(
                         "The outgroup file could not be read as a fasta file.")
-                Final_Name = Sequence_Processing(
-                    directory, Blastp_out_name, sequence, outgroup_fasta_dict)
             else:
-                Final_Name = Sequence_Processing(
-                    directory, Blastp_out_name, sequence, None)
+                outgroup_file=None
+            Final_Name = Sequence_Processing(
+                directory, Blastp_out_name, sequence, outgroup_file)
         else:
             if not (os.path.exists(args.input)):
                 raise ValueError(
@@ -1722,7 +1716,7 @@ if __name__ == '__main__':
                 for key, item in temp_User_Input_Sequence.items():
                     if '.' in key:
                         key = (key.split("."))[0]
-                    User_Input_Sequence.update({key: item})
+                    User_Input_Sequence.update({key:item})
             except BaseException:
                 raise ValueError("The file could not be read as a fasta file.")
             if len(User_Input_Sequence) == 1:
@@ -1732,17 +1726,17 @@ if __name__ == '__main__':
                     "Detected input fasta contained multiple sequences. This is an acceptable input, but is more prone to errors.")
             Blastp_out_name = BlastP(directory, User_Input_Sequence)
             if args.outgroup is not None:
+                print(f"args.outgroup: {args.outgroup}")
                 try:
                     outgroup_file = args.outgroup
-                    outgroup_fasta_dict = fasta2dict(outgroup_file)
+                    print(f"outgroup file: {outgroup_file}")
                 except BaseException:
                     raise ValueError(
                         "The outgroup file could not be read as a fasta file.")
-                Final_Name = Sequence_Processing(
-                    directory, Blastp_out_name, User_Input_Sequence, outgroup_fasta_dict)
             else:
-                Final_Name = Sequence_Processing(
-                    directory, Blastp_out_name, User_Input_Sequence, None)
+                outgroup_file=None
+            Final_Name = Sequence_Processing(
+                directory, Blastp_out_name, User_Input_Sequence, outgroup_file)
         with open(f"{directory}/{Final_Name}") as fin:
             if len(fin.readlines()) < 80:
                 print("WARNING: There are very few sequences in the final sequence alignment. This can indicate many highly similar sequences were returned from BlastP or that there are not many sequences available.")
