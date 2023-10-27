@@ -1019,8 +1019,8 @@ def Select_Ancestor_Nodes(dirname):
             Supports[ASRnodes[i][0]] = ((UFB_i, SHALRT_i))
             UFB_Supports.append(UFB_i)
             SHALRT_Supports.append(SHALRT_i)
-            if (SHALRT_i > 80) and (
-                    UFB_i > 95):  # If the SH-aLRT >80% and the ultrafast bootstraping is >95%
+            if (SHALRT_i > 50) and (
+                    UFB_i > 80):  # If the SH-aLRT >50% and the ultrafast bootstraping is >80%
                 # Record the name of the high-confidence nodes.
                 confident_nodes.append(ASRnodes[i][0])
         # This is nessecary because sometimes the info on a node is genuinely
